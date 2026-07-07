@@ -16,8 +16,8 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from hgt_rl_planner.data_loader import load_mooccubex_subgraph
-from hgt_rl_planner.models import RLPolicyNet
 from hgt_rl_planner.environment import RLEnvironment
+from hgt_rl_planner.models import RLPolicyNet
 from hgt_rl_planner.trainer import RLTrainer
 from hgt_rl_planner.utils.data_processing import process_custom_kg
 from hgt_rl_planner.utils.seeding import set_seed
@@ -58,7 +58,9 @@ def reduce_mean(value: float, device: torch.device) -> float:
 
 def setup_distributed(args) -> tuple[torch.device, int]:
     if not args.distributed:
-        device = torch.device("cuda" if args.use_cuda and torch.cuda.is_available() else "cpu")
+        device = torch.device(
+            "cuda" if args.use_cuda and torch.cuda.is_available() else "cpu"
+        )
         return device, 0
 
     if not args.use_cuda or not torch.cuda.is_available():
@@ -79,7 +81,9 @@ def cleanup_distributed():
         dist.destroy_process_group()
 
 
-def async_save_checkpoint(model_state_dict, checkpoint_path: str, history: dict = None, metrics_path: str = ""):
+def async_save_checkpoint(
+    model_state_dict, checkpoint_path: str, history: dict = None, metrics_path: str = ""
+):
     """后台异步保存 checkpoint，可选保存训练历史"""
     try:
         # 1. 保存模型 checkpoint (核心任务)
@@ -90,12 +94,12 @@ def async_save_checkpoint(model_state_dict, checkpoint_path: str, history: dict 
         # 2. 只有当路径非空且有历史数据时才尝试保存指标
         if metrics_path and history:
             metrics_dir = os.path.dirname(metrics_path)
-            if metrics_dir: # 避免 os.makedirs("")
+            if metrics_dir:  # 避免 os.makedirs("")
                 os.makedirs(metrics_dir, exist_ok=True)
             with open(metrics_path, "w") as f:
                 json.dump(history, f, indent=2)
             logging.info(f">>> [Async] History metrics saved: {metrics_path}")
-            
+
     except Exception as e:
         logging.error(f">>> [Async] Failed to save during background task: {e}")
 
@@ -104,7 +108,9 @@ def main():
     parser = argparse.ArgumentParser(description="KG-GNN RL Path Planner")
     parser.add_argument("--data_dir", type=str, default="data/MOOCCubex")
     parser.add_argument("--field", type=str, default="心理学")
-    parser.add_argument("--dataset_type", type=str, default="mooc", choices=["mooc", "standard"])
+    parser.add_argument(
+        "--dataset_type", type=str, default="mooc", choices=["mooc", "standard"]
+    )
     parser.add_argument("--dataset_name", type=str, default="MOOCCubex")
     parser.add_argument(
         "--hgt_emb_path", type=str, default="checkpoints/MOOCCubex/hgt_mooccubex.pt"
@@ -152,21 +158,22 @@ def main():
     # 处理标准数据集路径
     if args.dataset_type == "standard" and args.dataset_name:
         args.data_dir = f"data/{args.dataset_name}"
-        args.hgt_emb_path = f"checkpoints/{args.dataset_name}/hgt_{args.dataset_name}.pt"
+        args.hgt_emb_path = (
+            f"checkpoints/{args.dataset_name}/hgt_{args.dataset_name}.pt"
+        )
         args.rl_save_path = f"checkpoints/{args.dataset_name}/rl_policy_last.pt"
         args.metrics_path = f"reports/{args.dataset_name}/train_metrics.json"
         os.makedirs(os.path.dirname(args.rl_save_path), exist_ok=True)
         os.makedirs(os.path.dirname(args.metrics_path), exist_ok=True)
 
-
     device, local_rank = setup_distributed(args)
     rank = get_rank()
     world_size = get_world_size()
-    
+
     # --- 种子逻辑对齐 V2 ---
     # 1. 首先设置全局统一种子，确保各卡生成的 curriculum_pairs 和 eval_pairs 完全一致
     set_seed(args.seed)
-    
+
     print(
         f"--- [RL Train] Device: {device} | Field: {args.field} | AMP: {args.use_amp} | "
         f"Distributed: {args.distributed} | Rank: {rank}/{world_size} | Global Seed: {args.seed} ---"
@@ -186,7 +193,6 @@ def main():
 
     from hgt_rl_planner.data_loader import (
         load_custom_kg_from_json,
-        load_mooccubex_subgraph,
     )
 
     # 使用字段特定的 kg_data_{field}.json，确保领域隔离
@@ -196,13 +202,17 @@ def main():
     elif "MOOCCubex" in args.data_dir:
         kg_data, _ = load_mooccubex_subgraph(args.data_dir, target_field=args.field)
     else:
-        raise FileNotFoundError(f"未找到领域 [{args.field}] 的知识图谱数据: {kg_json_path}")
+        raise FileNotFoundError(
+            f"未找到领域 [{args.field}] 的知识图谱数据: {kg_json_path}"
+        )
 
     data, node_map, _, pagerank_values, _, _, _ = process_custom_kg(
-        kg_data, 
-        existing_node_map=hgt_id_to_name, 
+        kg_data,
+        existing_node_map=hgt_id_to_name,
         existing_relation_map=relation_map,
-        existing_node_id_map={v: k for k, v in raw_id_map.items()} if raw_id_map else None
+        existing_node_id_map={v: k for k, v in raw_id_map.items()}
+        if raw_id_map
+        else None,
     )
     data = data.to(device)
     name_to_id = {name: i for i, name in node_map.items()}
@@ -221,7 +231,9 @@ def main():
         constraint_mode=args.constraint_mode,
     )
 
-    policy_net = RLPolicyNet(hgt_embeddings.size(1), gru_hidden_dim=args.gru_hidden_dim).to(device)
+    policy_net = RLPolicyNet(
+        hgt_embeddings.size(1), gru_hidden_dim=args.gru_hidden_dim
+    ).to(device)
     if args.distributed:
         policy_net = DDP(policy_net, device_ids=[local_rank], output_device=local_rank)
     trainer = RLTrainer(env, policy_net, hgt_embeddings, device, learning_rate=args.lr)
@@ -229,7 +241,7 @@ def main():
     # 初始化混合精度训练（AMP）
     if args.use_amp and device.type == "cuda":
         scaler = torch.amp.GradScaler("cuda")
-        print(f"--- [RL Train] AMP Enabled: Using Tensor Core for 2-3x Speedup ---")
+        print("--- [RL Train] AMP Enabled: Using Tensor Core for 2-3x Speedup ---")
     else:
         scaler = None
 
@@ -242,20 +254,28 @@ def main():
                 target_pairs.append((src_idx, tgt_idx))
 
     # B. 长程认知路径
-    print(f"--- Generating long-range curriculum pairs (Hybrid mode)... ---")
-    from hgt_rl_planner.evaluation_lib import sample_curriculum_pairs_by_constrained_walk
-    curriculum_pairs = sample_curriculum_pairs_by_constrained_walk(env, num_samples=min(2000, data.num_nodes * 2))
+    print("--- Generating long-range curriculum pairs (Hybrid mode)... ---")
+    from hgt_rl_planner.evaluation_lib import (
+        sample_curriculum_pairs_by_constrained_walk,
+    )
+
+    curriculum_pairs = sample_curriculum_pairs_by_constrained_walk(
+        env, num_samples=min(2000, data.num_nodes * 2)
+    )
     target_pairs.extend(curriculum_pairs)
-    
-    print(f"--- Total Training Pairs: {len(target_pairs)} (Base: {len(target_pairs)-len(curriculum_pairs)} + Long: {len(curriculum_pairs)}) ---")
+
+    print(
+        f"--- Total Training Pairs: {len(target_pairs)} (Base: {len(target_pairs) - len(curriculum_pairs)} + Long: {len(curriculum_pairs)}) ---"
+    )
 
     if not target_pairs:
         concept_indices = list(range(data.num_nodes))
         for _ in range(500):
             target_pairs.append(random.sample(concept_indices, 2))
 
-    eval_pairs = random.sample(target_pairs, min(len(target_pairs), args.eval_num_samples))
-
+    eval_pairs = random.sample(
+        target_pairs, min(len(target_pairs), args.eval_num_samples)
+    )
 
     set_seed(args.seed)
 
@@ -272,15 +292,17 @@ def main():
         f"\n  | Rank: {rank} Seed: {args.seed + rank}"
     )
 
-
     history = defaultdict(list)
     total_rewards = []
-    
+
     try:
         for b in range(1, num_batches + 1):
             batch_pairs = [random.choice(target_pairs) for _ in range(args.batch_size)]
 
-            with torch.autocast(device_type="cuda" if "cuda" in device.type else "cpu", enabled=(scaler is not None)):
+            with torch.autocast(
+                device_type="cuda" if "cuda" in device.type else "cpu",
+                enabled=(scaler is not None),
+            ):
                 avg_reward, sr, loss = trainer.train_batch(batch_pairs)
 
             trainer.optimizer.zero_grad()
@@ -306,7 +328,10 @@ def main():
                     f"Batch {b}/{num_batches} | Ep {ep_count} | Reward: {avg_reward:.2f} | SR: {sr:.2%}"
                 )
 
-            if ep_count % args.save_every < global_batch_size and ep_count >= args.save_every:
+            if (
+                ep_count % args.save_every < global_batch_size
+                and ep_count >= args.save_every
+            ):
                 if is_distributed():
                     dist.barrier()
 
@@ -319,18 +344,26 @@ def main():
                     )
                     checkpoint_path = os.path.join(checkpoint_dir, checkpoint_name)
 
-                    checkpoint_copy = {k: v.cpu().clone() for k, v in base_model.state_dict().items()}
+                    checkpoint_copy = {
+                        k: v.cpu().clone() for k, v in base_model.state_dict().items()
+                    }
 
                     save_thread = threading.Thread(
                         target=async_save_checkpoint,
-                        args=(checkpoint_copy, checkpoint_path, {}, "")
+                        args=(checkpoint_copy, checkpoint_path, {}, ""),
                     )
                     save_thread.start()
 
-                    from hgt_rl_planner.evaluation_lib import evaluate_navigation_metrics
+                    from hgt_rl_planner.evaluation_lib import (
+                        evaluate_navigation_metrics,
+                    )
+
                     eval_metrics = evaluate_navigation_metrics(
-                        model=base_model, env=env, eval_pairs=eval_pairs,
-                        node_embeddings=hgt_embeddings, device=device,
+                        model=base_model,
+                        env=env,
+                        eval_pairs=eval_pairs,
+                        node_embeddings=hgt_embeddings,
+                        device=device,
                         metric_prerequisite_map=prereq_map,
                     )
 

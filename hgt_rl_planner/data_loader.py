@@ -12,29 +12,29 @@
 
 import json
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 # --- 类型注释 ---
-class NodesData(Dict[str, Any]):
+class NodesData(dict[str, Any]):
     """单个节点的结构定义"""
 
     pass
 
 
-class EdgesData(Dict[str, Any]):
+class EdgesData(dict[str, Any]):
     """单条边的结构定义"""
 
     pass
 
 
-class KnowledgeGraph(Dict[str, List]):
+class KnowledgeGraph(dict[str, list]):
     """知识图谱JSON文件的整体结构"""
 
     pass
 
 
-def _pick_first_existing_path(candidate_paths: List[str]) -> Tuple[str, bool]:
+def _pick_first_existing_path(candidate_paths: list[str]) -> tuple[str, bool]:
     """从候选路径中选择第一个存在的文件。"""
     for path in candidate_paths:
         if os.path.exists(path):
@@ -44,9 +44,10 @@ def _pick_first_existing_path(candidate_paths: List[str]) -> Tuple[str, bool]:
 
 # --- 内部辅助函数 ---
 
+
 def _scan_mooccubex_concepts(
     data_dir: str, target_field: str
-) -> Tuple[Dict[str, str], Dict[str, List[str]]]:
+) -> tuple[dict[str, str], dict[str, list[str]]]:
     """
     统一扫描 MOOCCubex 概念文件的逻辑。
 
@@ -59,7 +60,7 @@ def _scan_mooccubex_concepts(
 
     all_target_concepts = {}  # id -> name
     name_to_ids = {}  # name -> list of ids
-    with open(concept_json_path, "r", encoding="utf-8") as f:
+    with open(concept_json_path, encoding="utf-8") as f:
         for line in f:
             item = json.loads(line)
             # 核心过滤逻辑：ID 必须以目标领域结尾
@@ -79,7 +80,7 @@ def _scan_mooccubex_concepts(
 # --- 加载器 ---
 
 
-def extract_concept_dict_by_field(data_dir: str, target_field: str) -> Dict[str, str]:
+def extract_concept_dict_by_field(data_dir: str, target_field: str) -> dict[str, str]:
     """
     从 MOOCCubex 概念文件中提取指定领域的概念字典 (ID -> Name)。
 
@@ -105,12 +106,12 @@ def load_custom_kg_from_json(file_path: str) -> KnowledgeGraph:
         KnowledgeGraph: 加载后的数据，以字典形式表示。
     """
     print(f"--- 正在从 {file_path} 加载自定义知识图谱 ---")
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         data = json.load(f)
     return data
 
 
-def load_triplets_from_file(file_path: str) -> List[Tuple[str, str, str]]:
+def load_triplets_from_file(file_path: str) -> list[tuple[str, str, str]]:
     """
     从文本文件加载三元组。
     文件格式应为：头实体\t关系\t尾实体\n
@@ -121,7 +122,7 @@ def load_triplets_from_file(file_path: str) -> List[Tuple[str, str, str]]:
         List[Tuple[str, str, str]]: 字符串三元组列表。
     """
     triplets = []
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         for line in f:
             try:
                 # Nell-995 的格式是 concept:h\tconcept:r\tconcept:t
@@ -138,8 +139,8 @@ def load_triplets_from_file(file_path: str) -> List[Tuple[str, str, str]]:
 
 def load_standard_dataset(
     dataset_path: str,
-) -> Tuple[
-    List[Tuple[str, str, str]], List[Tuple[str, str, str]], List[Tuple[str, str, str]]
+) -> tuple[
+    list[tuple[str, str, str]], list[tuple[str, str, str]], list[tuple[str, str, str]]
 ]:
     """
     从目录加载一个标准的知识图谱数据集。
@@ -184,7 +185,7 @@ def load_standard_dataset(
 
 def load_mooccubex_subgraph(
     data_dir: str, target_field: str = "心理学"
-) -> Tuple[KnowledgeGraph, Dict[str, str]]:
+) -> tuple[KnowledgeGraph, dict[str, str]]:
     """
     主干+上下文 (Backbone & Flesh) 异构图加载器：
     - Backbone (主干): 具有先修关系的核心节点，受 M_pre 强约束。
@@ -193,16 +194,18 @@ def load_mooccubex_subgraph(
     print(f"--- 正在提取 MOOCCubex [{target_field}] 主干+血肉异构图 ---")
     ent_dir = os.path.join(data_dir, "entities")
     rel_dir = os.path.join(data_dir, "relations")
-    
+
     # 动态映射学科到先修关系文件 (高优先级修复)
     field_to_prereq = {
         "计算机科学与技术": "cs.json",
         "心理学": "psy.json",
-        "数学": "math.json"
+        "数学": "math.json",
     }
     prereq_filename = field_to_prereq.get(target_field)
     if not prereq_filename:
-        raise ValueError(f"未知的目标领域: {target_field}，请在 field_to_prereq 中补充对应的先修文件名。")
+        raise ValueError(
+            f"未知的目标领域: {target_field}，请在 field_to_prereq 中补充对应的先修文件名。"
+        )
     prereq_path = os.path.join(data_dir, "prerequisites", prereq_filename)
 
     # 1. 扫描目标领域所有概念
@@ -222,12 +225,12 @@ def load_mooccubex_subgraph(
         print("  - 正在读取先修关系数据...")
         line_count = 0
         valid_count = 0
-        with open(prereq_path, "r", encoding="utf-8") as f:
+        with open(prereq_path, encoding="utf-8") as f:
             for line in f:
                 line_count += 1
                 if line_count % 100000 == 0:
                     print(f"    已处理 {line_count} 行...")
-                
+
                 item = json.loads(line)
                 c1, c2 = item["c1"], item["c2"]
                 if c1 in name_to_ids and c2 in name_to_ids:
@@ -242,7 +245,7 @@ def load_mooccubex_subgraph(
                         candidate_edges[(c2, c1)] = (True, 1.0, False)
                         valid_count += 1
                     # 忽略 ground_truth=0 的预测结果
-        
+
         print(f"  - 总共读取 {line_count} 行，其中 {valid_count} 条有效先修关系")
 
         # 第二阶段：处理矛盾关系（降级策略）
@@ -254,31 +257,34 @@ def load_mooccubex_subgraph(
         #      - 如果有双向冲突：保留字典序较小的方向，降级为预测数据（is_gt=False），删除反向
         #   最终：保持图的单向性，让 HGT attention 学习权重
         print("  - 正在处理矛盾关系（降级策略 + 保持单向性）...")
-        
+
         # 收集原始的 ground_truth 信息，区分来源
         pair_source = {}  # (c1, c2) -> 'gt_1' or 'gt_minus_1'
         print("    - 重新扫描原始数据...")
-        
-        with open(prereq_path, "r", encoding="utf-8") as f:
+
+        with open(prereq_path, encoding="utf-8") as f:
             for line in f:
                 item = json.loads(line)
                 c1, c2 = item["c1"], item["c2"]
                 if c1 in name_to_ids and c2 in name_to_ids:
                     gt = item.get("ground_truth", 0)
                     if gt == 1:
-                        pair_source[(c1, c2)] = 'gt_1'
+                        pair_source[(c1, c2)] = "gt_1"
                     elif gt == -1:
-                        pair_source[(c2, c1)] = 'gt_minus_1'  # 反转后
-        
+                        pair_source[(c2, c1)] = "gt_minus_1"  # 反转后
+
         # 找出 ground_truth=-1 中的双向冲突，并决定保留哪个方向
-        gt_minus_1_pairs = [k for k, v in pair_source.items() if v == 'gt_minus_1']
+        gt_minus_1_pairs = [k for k, v in pair_source.items() if v == "gt_minus_1"]
         to_remove = set()  # 要删除的关系对
         to_downgrade = set()  # 要降级的关系对
-        
-        print(f"    - 正在检测 ground_truth=-1 中的双向冲突...")
+
+        print("    - 正在检测 ground_truth=-1 中的双向冲突...")
         for pair in gt_minus_1_pairs:
             reverse_pair = (pair[1], pair[0])
-            if reverse_pair in pair_source and pair_source[reverse_pair] == 'gt_minus_1':
+            if (
+                reverse_pair in pair_source
+                and pair_source[reverse_pair] == "gt_minus_1"
+            ):
                 # 双向冲突：保留字典序较小的，删除较大的
                 if pair < reverse_pair:
                     to_remove.add(reverse_pair)  # 删除反向的
@@ -286,10 +292,10 @@ def load_mooccubex_subgraph(
                 else:
                     to_remove.add(pair)  # 删除正向的
                     to_downgrade.add(reverse_pair)  # 降级保留的
-        
+
         print(f"    - 发现 {len(to_remove)} 条冲突关系将被删除")
         print(f"    - 发现 {len(to_downgrade)} 条冲突关系将被降级为预测数据")
-        
+
         # 降级策略：将冲突的关系标记为 is_gt=False，并删除双向关系
         final_prereq_pairs = {}
         for (c1, c2), (is_gt, score, _) in candidate_edges.items():
@@ -318,12 +324,12 @@ def load_mooccubex_subgraph(
         ground_truth_count = 0
         predicted_count = 0
         edge_count = 0
-        
+
         for (c1, c2), (is_gt, score) in final_prereq_pairs.items():
             edge_count += 1
             if edge_count % 50000 == 0:
                 print(f"    - 已生成 {edge_count} 条边...")
-            
+
             # 为避免同名多ID导致的笛卡尔积边数爆炸，这里采取“保守降维”策略：
             # 即使同一领域内有多个同名正统ID，我们也只选取首个ID进行连接，
             # 放弃后续实体的先修信息，以防止引入缺乏真实标注支撑的弱真值边使图谱过度稠密化。
@@ -360,18 +366,18 @@ def load_mooccubex_subgraph(
     ]
     cat_path, cat_found = _pick_first_existing_path(cat_candidates)
     level_path, level_found = _pick_first_existing_path(level_candidates)
-    
+
     cat_map = {}
     if cat_found:
-        with open(cat_path, "r", encoding="utf-8") as f:
+        with open(cat_path, encoding="utf-8") as f:
             cat_map = json.load(f)
         print(f"--- 分类文件: {os.path.basename(cat_path)} ---")
     else:
         print("--- 未检测到分类文件，使用默认类型 Theory ---")
-    
+
     level_map = {}
     if level_found:
-        with open(level_path, "r", encoding="utf-8") as f:
+        with open(level_path, encoding="utf-8") as f:
             level_map = json.load(f)
         print(f"--- 等级文件: {os.path.basename(level_path)} ---")
     else:
@@ -379,6 +385,7 @@ def load_mooccubex_subgraph(
 
     # 4. 提取共现关系并识别血肉节点 (Flesh)
     from collections import Counter
+
     co_occur_configs = {
         "taught_together": ("concept-video.txt", 2),
         "tested_together": ("concept-problem.txt", 1),
@@ -396,7 +403,7 @@ def load_mooccubex_subgraph(
 
         print(f"--- 正在从 {filename} 提取 [{rel_type}] 软相关边 ---")
         entity_to_concepts = {}
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             for line in f:
                 parts = line.strip().split()
                 if len(parts) >= 2:
@@ -422,37 +429,45 @@ def load_mooccubex_subgraph(
                 if id1 in backbone_ids or id2 in backbone_ids:
                     # 语义修复：共现关系本质是对称的，恢复双向添加以增强 HGT 的消息传递
                     # 这虽然会让整图含环，但符合异构图表征学习的初衷
-                    enhanced_edges.append({"source": id1, "target": id2, "relation": rel_type})
-                    enhanced_edges.append({"source": id2, "target": id1, "relation": rel_type})
+                    enhanced_edges.append(
+                        {"source": id1, "target": id2, "relation": rel_type}
+                    )
+                    enhanced_edges.append(
+                        {"source": id2, "target": id1, "relation": rel_type}
+                    )
 
-                    if id1 not in backbone_ids: flesh_ids.add(id1)
-                    if id2 not in backbone_ids: flesh_ids.add(id2)
+                    if id1 not in backbone_ids:
+                        flesh_ids.add(id1)
+                    if id2 not in backbone_ids:
+                        flesh_ids.add(id2)
                     count += 2
         print(f"  - 已添加 {count} 条对称 [{rel_type}] 边 (增强语义表征)")
-
 
     # 5. 规范化先修关系 (去重)
     # 移除原先基于 LLM Level 和 ID 字典序的翻转逻辑，因为：
     # 1. 人工确认的先修边（ground_truth）不应被带有噪声的 LLM 定级推翻。
     # 2. 缺失 level 时按 ID 排序会强行构造不真实的依赖。
-    print(f"--- 正在规范化先修边 (仅去重，不翻转) ---")
-    
-    unique_prereqs = {} # (src, tgt) -> edge_data
+    print("--- 正在规范化先修边 (仅去重，不翻转) ---")
+
+    unique_prereqs = {}  # (src, tgt) -> edge_data
     original_count = len(prereq_edges)
 
     for edge in prereq_edges:
         u, v = edge["source"], edge["target"]
-        
+
         # 使用字典进行去重 (保留人工标注的原始方向)
         if (u, v) not in unique_prereqs:
-            unique_prereqs[(u, v)] = {"source": u, "target": v, "relation": "prerequisite"}
-    
+            unique_prereqs[(u, v)] = {
+                "source": u,
+                "target": v,
+                "relation": "prerequisite",
+            }
+
     prereq_edges = list(unique_prereqs.values())
     merged_count = original_count - len(prereq_edges)
-    
+
     print(f"  - 先修边处理完成: 合并(去重) {merged_count} 条")
     print(f"  - 最终保留了 {len(prereq_edges)} 条唯一的先修逻辑连接")
-
 
     # 6. 组装节点列表
     final_nodes = []
@@ -467,11 +482,11 @@ def load_mooccubex_subgraph(
         level = level_map.get(c_id, 5)
         final_nodes.append(
             {
-                "id": c_id, 
-                "name": name, 
-                "type": full_type, 
+                "id": c_id,
+                "name": name,
+                "type": full_type,
                 "is_backbone": is_backbone,
-                "level": level
+                "level": level,
             }
         )
 

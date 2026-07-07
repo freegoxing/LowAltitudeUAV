@@ -1,10 +1,10 @@
+import argparse
 import json
-import requests
-import time
 import os
 import sys
-import argparse
-from typing import List, Dict, Any
+import time
+
+import requests
 
 # 自动将项目根目录添加到 sys.path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +15,7 @@ if project_root not in sys.path:
 from hgt_rl_planner.data_loader import extract_concept_dict_by_field
 
 # ================= 配置区 =================
-OLLAMA_HOST = "localhost" 
+OLLAMA_HOST = "localhost"
 OLLAMA_PORT = "11434"
 MODEL_NAME = "qwen3:32b"
 MOOCCUBEX_DATA_DIR = "data/MOOCCubex"
@@ -72,39 +72,38 @@ Constraint:
 - 严禁输出任何解释性文字。
 - 必须且仅返回一个标准 JSON 对象，键为概念的 ID，值为分类缩写 (T, M, A, O)。
 - 不要包含 Markdown 代码块标签。
-"""
+""",
 }
 
-def call_ollama(concepts: List[str], prompt_template: str) -> Dict[str, str]:
+
+def call_ollama(concepts: list[str], prompt_template: str) -> dict[str, str]:
     """调用远程 Ollama API"""
     prompt = prompt_template.format(concepts=", ".join(concepts))
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-        "format": "json"
-    }
-    
+    payload = {"model": MODEL_NAME, "prompt": prompt, "stream": False, "format": "json"}
+
     try:
         response = requests.post(OLLAMA_URL, json=payload, timeout=120)
         response.raise_for_status()
         result_text = response.json().get("response", "{}")
-        
-        start = result_text.find('{')
-        end = result_text.rfind('}')
+
+        start = result_text.find("{")
+        end = result_text.rfind("}")
         if start != -1 and end != -1:
             clean_text = result_text[start : end + 1]
         else:
             clean_text = result_text.strip()
-            
+
         return json.loads(clean_text)
     except Exception as e:
         print(f"\n[Error] 调用 LLM 失败: {e}")
         return {}
 
+
 def main():
     parser = argparse.ArgumentParser(description="根据领域对概念进行分类")
-    parser.add_argument("--field", type=str, default="心理学", help="目标领域 (默认: 心理学)")
+    parser.add_argument(
+        "--field", type=str, default="心理学", help="目标领域 (默认: 心理学)"
+    )
     args = parser.parse_args()
 
     target_field = args.field
@@ -120,7 +119,9 @@ def main():
 
     # 1. 提取原始概念字典
     try:
-        all_concepts_dict = extract_concept_dict_by_field(MOOCCUBEX_DATA_DIR, target_field)
+        all_concepts_dict = extract_concept_dict_by_field(
+            MOOCCUBEX_DATA_DIR, target_field
+        )
         all_concepts = list(all_concepts_dict.keys())
         print(f"提取完成，共 {len(all_concepts)} 个唯一概念。")
     except Exception as e:
@@ -130,12 +131,13 @@ def main():
     # 2. 加载进度
     classified_data = {}
     if os.path.exists(output_file):
-        with open(output_file, 'r', encoding='utf-8') as f:
+        with open(output_file, encoding="utf-8") as f:
             try:
                 loaded_data = json.load(f)
                 valid_types = {"T", "M", "A", "O"}
                 classified_data = {
-                    k: v for k, v in loaded_data.items()
+                    k: v
+                    for k, v in loaded_data.items()
                     if k in all_concepts and v in valid_types
                 }
                 print(f"已加载现有进度: {len(classified_data)} 条已分类。")
@@ -150,36 +152,46 @@ def main():
     # 3. 分批处理
     total_initial_remaining = len(remaining)
     consecutive_failures = 0
-    
+
     try:
         while remaining:
             batch_ids = remaining[:BATCH_SIZE]
-            batch_prompt_data = [f"{cid}: {all_concepts_dict[cid]}" for cid in batch_ids]
-            
+            batch_prompt_data = [
+                f"{cid}: {all_concepts_dict[cid]}" for cid in batch_ids
+            ]
+
             processed_count = total_initial_remaining - len(remaining)
-            print(f"\r进度: {processed_count + len(batch_ids)}/{total_initial_remaining} ", end="", flush=True)
-            
+            print(
+                f"\r进度: {processed_count + len(batch_ids)}/{total_initial_remaining} ",
+                end="",
+                flush=True,
+            )
+
             success_in_batch = []
             for retry in range(3):
                 result = call_ollama(batch_prompt_data, prompt_template)
                 if result:
-                    valid_result = {k: v for k, v in result.items() if k in batch_ids and v in {"T", "M", "A", "O"}}
+                    valid_result = {
+                        k: v
+                        for k, v in result.items()
+                        if k in batch_ids and v in {"T", "M", "A", "O"}
+                    }
                     if valid_result:
                         success_in_batch.extend(list(valid_result.keys()))
                         classified_data.update(valid_result)
-                        with open(output_file, 'w', encoding='utf-8') as f:
+                        with open(output_file, "w", encoding="utf-8") as f:
                             json.dump(classified_data, f, ensure_ascii=False, indent=2)
                         if len(valid_result) >= len(batch_ids):
                             break
                 time.sleep(1)
-            
+
             if success_in_batch:
                 success_set = set(success_in_batch)
                 remaining = [c for c in remaining if c not in success_set]
                 consecutive_failures = 0
             else:
                 consecutive_failures += 1
-                remaining = remaining[BATCH_SIZE:] + batch_ids # 移到队尾
+                remaining = remaining[BATCH_SIZE:] + batch_ids  # 移到队尾
                 if consecutive_failures >= 5:
                     print("\n[错误] 连续失败多次，停止。")
                     break
@@ -187,6 +199,7 @@ def main():
 
     except KeyboardInterrupt:
         print("\n[Stop] 用户手动停止。")
+
 
 if __name__ == "__main__":
     main()

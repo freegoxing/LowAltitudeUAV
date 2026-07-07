@@ -24,17 +24,17 @@ def set_seed(seed: int, force_deterministic: bool = False):
     # 注意：PYTHONHASHSEED 环境变量必须在 Python 启动前设置，
     # 例如：PYTHONHASHSEED=42 python run_experiments.py
     # 否则 dict/set 的 hash 随机化仍可能导致顺序差异。
-    
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
+
     if force_deterministic:
         # 强制 PyTorch 使用确定性算法 (支持 CPU 和 CUDA)
         torch.use_deterministic_algorithms(True)
         # 某些操作可能需要设置这个环境变量
-        if 'CUBLAS_WORKSPACE_CONFIG' not in os.environ:
-            os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+        if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)

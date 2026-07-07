@@ -9,7 +9,6 @@ import os
 import random
 import sys
 from collections import defaultdict, deque
-from typing import Dict, List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,16 +18,14 @@ from hgt_rl_planner.data_loader import (
     load_custom_kg_from_json,
     load_mooccubex_subgraph,
 )
+from hgt_rl_planner.environment import RLEnvironment
 from hgt_rl_planner.evaluation_lib import (
     evaluate_model_checkpoint,
     evaluate_navigation_metrics,
-    evaluate_ranking_metrics_type_aware,
 )
 from hgt_rl_planner.models import RLPolicyNet
-from hgt_rl_planner.environment import RLEnvironment
 from hgt_rl_planner.utils.data_processing import process_custom_kg
 from hgt_rl_planner.utils.plotting import (
-    plot_aggregated_metric_over_time,
     plot_metric_over_time,
     plot_metrics_summary,
 )
@@ -42,7 +39,7 @@ def _print_flush(message: str) -> None:
 def _has_bounded_path(
     start_node: int,
     end_node: int,
-    adj: Dict[int, List[int]],
+    adj: dict[int, list[int]],
     max_depth: int,
 ) -> bool:
     """使用节点级有界 BFS 检查路径是否存在，避免状态空间爆炸。"""
@@ -66,9 +63,10 @@ def _has_bounded_path(
 
     return False
 
+
 def summarize_eval_samples(
-    eval_samples: List[Tuple[int, int]],
-    prereq_map: Dict[int, Set[int]],
+    eval_samples: list[tuple[int, int]],
+    prereq_map: dict[int, set[int]],
     node_types: torch.Tensor,
     env: RLEnvironment = None,
     max_path_length: int = 15,
@@ -115,19 +113,21 @@ def summarize_eval_samples(
                 if nxt not in visited:
                     visited.add(nxt)
                     queue.append((nxt, dist + 1))
-        
+
         if found_dist is not None:
             prereq_distances.append(found_dist)
 
         # Hybrid/Soft 摘要只做节点级有界连通性统计，避免约束状态搜索造成内存爆炸。
-        if env and _has_bounded_path(start_node, end_node, full_adj, max_depth=max_path_length):
+        if env and _has_bounded_path(
+            start_node, end_node, full_adj, max_depth=max_path_length
+        ):
             hybrid_reachable_count += 1
 
     _print_flush("--- Eval Sample Summary ---")
     _print_flush(f"  Total pairs: {len(eval_samples)}")
     _print_flush(
         f"  Graph reachable ratio (bounded, <= {max_path_length} hops): "
-        f"{hybrid_reachable_count/len(eval_samples):.2%}"
+        f"{hybrid_reachable_count / len(eval_samples):.2%}"
     )
 
     if prereq_distances:
@@ -136,7 +136,7 @@ def summarize_eval_samples(
             f"mean={np.mean(prereq_distances):.2f}, max={max(prereq_distances)}"
         )
         _print_flush(
-            f"  Pure Prereq reachable ratio: {len(prereq_distances)/len(eval_samples):.2%}"
+            f"  Pure Prereq reachable ratio: {len(prereq_distances) / len(eval_samples):.2%}"
         )
     else:
         _print_flush("  Pure Prereq reachable ratio: 0.00%")
@@ -152,14 +152,14 @@ def summarize_eval_samples(
 
 
 def generate_hierarchical_eval_samples(
-    prereq_map: Dict[int, Set[int]],
+    prereq_map: dict[int, set[int]],
     node_types: torch.Tensor,
     num_samples: int = 100,
     min_path_length: int = 3,
     max_path_length: int = 10,
-    type_order: List[int] = None,
+    type_order: list[int] = None,
     rng: random.Random = None,
-) -> List[Tuple[int, int]]:
+) -> list[tuple[int, int]]:
     """
     基于层次（T→M→A→O）生成评估样本。
 
@@ -414,7 +414,9 @@ def main():
         print(f"--- Auto-detected checkpoint_dir: {args.checkpoint_dir} ---")
 
     set_seed(args.seed)
-    device = torch.device("cuda" if args.use_cuda and torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda" if args.use_cuda and torch.cuda.is_available() else "cpu"
+    )
     print(
         f"--- [Evaluation V3.0] Device: {device} | Mode: {args.evaluation_mode} | Seed: {args.seed} ---"
     )
@@ -439,14 +441,18 @@ def main():
         kg_data, _ = load_mooccubex_subgraph(args.data_dir, target_field=args.field)
     else:
         # 标准数据集或其他情况，如果不存在 field-specific 文件，抛出异常
-        raise FileNotFoundError(f"未找到领域 [{args.field}] 的知识图谱数据: {kg_json_path}")
+        raise FileNotFoundError(
+            f"未找到领域 [{args.field}] 的知识图谱数据: {kg_json_path}"
+        )
 
     # 处理图数据
     data, node_map, _, pagerank_values, _, _, _ = process_custom_kg(
-        kg_data, 
-        existing_node_map=hgt_id_to_name, 
+        kg_data,
+        existing_node_map=hgt_id_to_name,
         existing_relation_map=relation_map,
-        existing_node_id_map={v: k for k, v in raw_id_map.items()} if raw_id_map else None
+        existing_node_id_map={v: k for k, v in raw_id_map.items()}
+        if raw_id_map
+        else None,
     )
     data = data.to(device)
     name_to_id = {name: i for i, name in node_map.items()}
@@ -461,19 +467,19 @@ def main():
         pagerank_values=pagerank_values,
         prerequisite_map=prereq_map,
         node_types=node_types,
-        constraint_mode=args.constraint_mode
+        constraint_mode=args.constraint_mode,
     )
 
     # 准备评估样本
     if args.eval_pairs_file and os.path.exists(args.eval_pairs_file):
         print(f"--- Loading held-out eval_pairs from {args.eval_pairs_file} ---")
-        with open(args.eval_pairs_file, "r") as f:
+        with open(args.eval_pairs_file) as f:
             loaded_pairs = json.load(f)
             # JSON might serialize tuples to lists
             eval_samples = [(int(u), int(v)) for u, v in loaded_pairs]
         print(f"--- Loaded {len(eval_samples)} eval_pairs ---")
     elif args.use_hierarchical_sampling:
-        print(f"--- Using Hierarchical Sampling (T→M→A→O) ---")
+        print("--- Using Hierarchical Sampling (T→M→A→O) ---")
         eval_samples = generate_hierarchical_eval_samples(
             prereq_map=prereq_map,
             node_types=node_types,
@@ -484,7 +490,7 @@ def main():
         )
         print(f"--- Generated {len(eval_samples)} hierarchical samples ---")
     else:
-        print(f"--- Using Random Sampling (all prerequisite pairs) ---")
+        print("--- Using Random Sampling (all prerequisite pairs) ---")
         test_pairs = []
         for tgt_idx, src_indices in prereq_map.items():
             for src_idx in src_indices:
@@ -494,7 +500,13 @@ def main():
         eval_samples = random.sample(test_pairs, min(len(test_pairs), args.num_samples))
 
     print(f"--- Starting Evaluation on {len(eval_samples)} samples ---")
-    summarize_eval_samples(eval_samples, prereq_map, node_types, env=env, max_path_length=args.max_path_length)
+    summarize_eval_samples(
+        eval_samples,
+        prereq_map,
+        node_types,
+        env=env,
+        max_path_length=args.max_path_length,
+    )
 
     # 构建邻接表 (用于 Filtered Ranking)
     adj = defaultdict(list)
@@ -503,7 +515,7 @@ def main():
         adj[h].append(t)
 
     # 构建所有已知三元组集合 (用于 Filtered Ranking)
-    all_known_triplets: Optional[Set[Tuple[int, int, int]]] = None
+    all_known_triplets: set[tuple[int, int, int]] | None = None
     if args.enable_filtered_ranking:
         # 修正：将 source/target/relation 映射为数字 ID
         # 优先使用 raw_id_map 进行精确匹配，避免同名冲突
@@ -517,17 +529,19 @@ def main():
                     if name == node["name"]:
                         old_id_to_new_id[node["id"]] = int(int_id)
                         break
-        
+
         all_known_triplets = set()
         for edge in kg_data["edges"]:
             s_new = old_id_to_new_id.get(edge["source"])
             t_new = old_id_to_new_id.get(edge["target"])
             r_new = relation_map.get(edge["relation"])
-            
+
             if s_new is not None and t_new is not None and r_new is not None:
                 all_known_triplets.add((s_new, r_new, t_new))
-        
-        print(f"--- Filtered Ranking Enabled: {len(all_known_triplets)} known triplets mapped ---")
+
+        print(
+            f"--- Filtered Ranking Enabled: {len(all_known_triplets)} known triplets mapped ---"
+        )
 
     # 加载 RL 模型
     policy_net = RLPolicyNet(
@@ -540,7 +554,7 @@ def main():
 
     # 批量评估所有检查点
     if args.evaluate_all_checkpoints:
-        print(f"--- Batch Evaluation Mode: Evaluating all checkpoints ---")
+        print("--- Batch Evaluation Mode: Evaluating all checkpoints ---")
         import glob
         import re
 
@@ -735,7 +749,7 @@ def main():
                     range(len(all_metrics_history)),
                     key=lambda i: all_metrics_history[i].get("mrr", 0),
                 )
-                print(f"\n--- Best Results ---")
+                print("\n--- Best Results ---")
                 print(
                     f"  Best SR: {all_metrics_history[best_sr_idx].get('success_rate', 0):.2%} at Epoch {all_metrics_history[best_sr_idx]['epoch']}"
                 )
@@ -749,7 +763,7 @@ def main():
             metrics = {}
     elif args.multi_seed_eval:
         # 多种子评估模式
-        print(f"--- Multi-Seed Evaluation Mode ---")
+        print("--- Multi-Seed Evaluation Mode ---")
         results = {}
         for seed in [42, 1984, 8888]:
             model_path = args.rl_model_path.replace("{seed}", str(seed))
@@ -849,27 +863,33 @@ def main():
 
     # 打印结果
     print("\n" + "=" * 60)
-    print(f"Evaluation Results (V3.0 - Corrected Metrics)")
+    print("Evaluation Results (V3.0 - Corrected Metrics)")
     print("=" * 60)
 
     # 分组显示指标
     if "success_rate" in metrics:
-        print(f"\n🎯 Navigation Metrics (Practical):")
+        print("\n🎯 Navigation Metrics (Practical):")
         print(f"  Success Rate:              {metrics['success_rate']:.2%}")
         print(f"  Avg Path Length:           {metrics['avg_path_length']:.2f}")
         if "path_prereq_compliance" in metrics:
-            print(f"  Path Prereq Compliance (PPC): {metrics['path_prereq_compliance']:.2%}")
+            print(
+                f"  Path Prereq Compliance (PPC): {metrics['path_prereq_compliance']:.2%}"
+            )
         if "target_relevant_ppc" in metrics:
-            print(f"  Target-Relevant PPC:          {metrics['target_relevant_ppc']:.2%}")
+            print(
+                f"  Target-Relevant PPC:          {metrics['target_relevant_ppc']:.2%}"
+            )
         if "target_frontier_coverage" in metrics:
-            print(f"  Target Frontier Coverage (TFC): {metrics['target_frontier_coverage']:.2%}")
+            print(
+                f"  Target Frontier Coverage (TFC): {metrics['target_frontier_coverage']:.2%}"
+            )
         if "frontier_hit_rate" in metrics:
             print(f"  Frontier Hit Rate:            {metrics['frontier_hit_rate']:.2%}")
         if "conditional_tfc" in metrics:
             print(f"  Conditional TFC:              {metrics['conditional_tfc']:.2%}")
 
     if "mrr" in metrics:
-        print(f"\n📊 Ranking Metrics (Academic):")
+        print("\n📊 Ranking Metrics (Academic):")
         print(f"  MRR:               {metrics['mrr']:.4f}")
         if "hits@1" in metrics:
             print(f"  Hits@1:            {metrics['hits@1']:.2%}")
@@ -924,7 +944,8 @@ def main():
             nav_metrics = {
                 k: v
                 for k, v in metrics.items()
-                if k in [
+                if k
+                in [
                     "success_rate",
                     "avg_path_length",
                     "path_prereq_compliance",
@@ -950,7 +971,7 @@ def main():
                 plt.close()
                 print(f"--- Navigation plot saved to: {plot_path} ---")
 
-    print(f"--- Evaluation Complete ---")
+    print("--- Evaluation Complete ---")
 
 
 if __name__ == "__main__":

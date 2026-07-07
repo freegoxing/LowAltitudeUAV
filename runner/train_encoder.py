@@ -4,13 +4,11 @@ Pre-HGT 编码器预训练脚本 (V2.6 兼容 PyTorch 2.6)
 
 import argparse
 import os
-from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.cuda.amp import GradScaler, autocast
-from torch_geometric.data import Data
 from torch_geometric.utils import negative_sampling
 
 from hgt_rl_planner.data_loader import (
@@ -19,7 +17,6 @@ from hgt_rl_planner.data_loader import (
 )
 from hgt_rl_planner.models import PreHGTEncoder
 from hgt_rl_planner.utils.data_processing import (
-    clean_graph,
     convert_to_hetero,
     process_custom_kg,
 )
@@ -32,14 +29,16 @@ class HGCTrainer:
         encoder: PreHGTEncoder,
         device: torch.device,
         learning_rate: float,
-        x_dict_ids: Dict[str, torch.Tensor],
-        prereq_index: Optional[torch.Tensor] = None,
+        x_dict_ids: dict[str, torch.Tensor],
+        prereq_index: torch.Tensor | None = None,
         use_amp: bool = True,
         weight_decay: float = 0.0,
     ):
         self.encoder = encoder
         self.device = device
-        self.optimizer = optim.Adam(encoder.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        self.optimizer = optim.Adam(
+            encoder.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
         self.x_dict_ids = x_dict_ids
         self.prereq_index = prereq_index
         self.use_amp = use_amp and device.type == "cuda"
@@ -120,10 +119,12 @@ def main(args):
     elif "MOOCCubex" in args.data_dir:
         kg_data, _ = load_mooccubex_subgraph(args.data_dir, target_field=args.field)
     else:
-        raise FileNotFoundError(f"未找到领域 [{args.field}] 的知识图谱数据: {kg_json_path}")
+        raise FileNotFoundError(
+            f"未找到领域 [{args.field}] 的知识图谱数据: {kg_json_path}"
+        )
 
-    data, entity_map, relation_map, _, node_types, prereq_map, int_id_to_raw_id = process_custom_kg(
-        kg_data
+    data, entity_map, relation_map, _, node_types, prereq_map, int_id_to_raw_id = (
+        process_custom_kg(kg_data)
     )
     data = data.to(device)
     node_types = node_types.to(device)
@@ -160,7 +161,7 @@ def main(args):
         args.out_channels,
         metadata,
         heads=args.heads,
-        node_types_order=node_types_order
+        node_types_order=node_types_order,
     ).to(device)
     trainer = HGCTrainer(
         encoder,
@@ -172,7 +173,7 @@ def main(args):
         weight_decay=args.weight_decay,
     )
     if args.use_amp and device.type == "cuda":
-        print(f"--- [HGT Pretrain] 已启用自动混合精度训练 (AMP) ---")
+        print("--- [HGT Pretrain] 已启用自动混合精度训练 (AMP) ---")
     for epoch in range(1, args.epochs + 1):
         loss = trainer.train_epoch(x_dict, edge_index_dict, data, args.neg_sample_ratio)
         if epoch % 100 == 0:
@@ -208,7 +209,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=str, default="data/MOOCCubex")
     parser.add_argument("--field", type=str, default="心理学")
-    parser.add_argument("--dataset_type", type=str, default="mooc", choices=["mooc", "standard"])
+    parser.add_argument(
+        "--dataset_type", type=str, default="mooc", choices=["mooc", "standard"]
+    )
     parser.add_argument("--dataset_name", type=str, default="MOOCCubex")
     parser.add_argument(
         "--save_path", type=str, default="checkpoints/MOOCCubex/hgt_mooccubex.pt"
@@ -219,7 +222,9 @@ if __name__ == "__main__":
     parser.add_argument("--out_channels", type=int, default=128)
     parser.add_argument("--heads", type=int, default=4, help="HGT 注意力头数量")
     parser.add_argument("--learning_rate", type=float, default=0.001)
-    parser.add_argument("--weight_decay", type=float, default=0.0, help="Adam 优化器的权重衰减")
+    parser.add_argument(
+        "--weight_decay", type=float, default=0.0, help="Adam 优化器的权重衰减"
+    )
     parser.add_argument("--neg_sample_ratio", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--use_cuda", action="store_true")
@@ -229,11 +234,11 @@ if __name__ == "__main__":
         "--use_amp", action="store_true", help="启用自动混合精度训练 (AMP)"
     )
     args = parser.parse_args()
-    
+
     # 动态构建保存路径（针对 standard 数据集）
     if args.dataset_type == "standard" and args.dataset_name:
         args.data_dir = f"data/{args.dataset_name}"
         args.save_path = f"checkpoints/{args.dataset_name}/hgt_{args.dataset_name}.pt"
         os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
-    
+
     main(args)

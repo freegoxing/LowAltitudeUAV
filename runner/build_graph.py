@@ -1,8 +1,8 @@
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
 
 # 自动处理路径
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,13 +14,13 @@ from hgt_rl_planner.data_loader import load_mooccubex_subgraph
 
 
 def run_quality_gate(
-    kg_data: Dict[str, Any], 
-    max_total_violation_rate: float, 
-    max_severe_violation_rate: float, 
+    kg_data: dict[str, Any],
+    max_total_violation_rate: float,
+    max_severe_violation_rate: float,
     severe_threshold: int,
     max_missing_level_rate: float = 0.1,
     min_valid_level: int = 1,
-    max_valid_level: int = 10
+    max_valid_level: int = 10,
 ) -> None:
     """
     按先修关系与概念等级的一致性进行质量门控。
@@ -28,9 +28,9 @@ def run_quality_gate(
     """
     nodes = kg_data.get("nodes", [])
     edges = kg_data.get("edges", [])
-    level_by_id: Dict[str, int] = {}
-    name_by_id: Dict[str, str] = {}
-    invalid_level_ids: List[Tuple[str, Any, str]] = [] # (id, value, reason)
+    level_by_id: dict[str, int] = {}
+    name_by_id: dict[str, str] = {}
+    invalid_level_ids: list[tuple[str, Any, str]] = []  # (id, value, reason)
 
     for n in nodes:
         nid = n.get("id")
@@ -38,14 +38,20 @@ def run_quality_gate(
             continue
         name_by_id[nid] = n.get("name", nid)
         raw_level = n.get("level")
-        
-        parsed_level: Optional[int] = None
+
+        parsed_level: int | None = None
         if raw_level is not None:
             try:
                 parsed_level = int(float(raw_level))
                 # 范围校验
                 if parsed_level < min_valid_level or parsed_level > max_valid_level:
-                    invalid_level_ids.append((nid, raw_level, f"越界(需在{min_valid_level}-{max_valid_level}之间)"))
+                    invalid_level_ids.append(
+                        (
+                            nid,
+                            raw_level,
+                            f"越界(需在{min_valid_level}-{max_valid_level}之间)",
+                        )
+                    )
                     parsed_level = None
             except (TypeError, ValueError):
                 invalid_level_ids.append((nid, raw_level, "无法解析为数值"))
@@ -57,7 +63,7 @@ def run_quality_gate(
 
     total_nodes = len(nodes)
     invalid_rate = len(invalid_level_ids) / max(1, total_nodes)
-    
+
     print("=== 质量门控报告 ===")
     print(f"节点总数: {total_nodes}")
     print(f"缺失或非法等级节点数: {len(invalid_level_ids)} ({invalid_rate:.2%})")
@@ -65,11 +71,17 @@ def run_quality_gate(
     if invalid_level_ids:
         print("部分异常等级示例:")
         for nid, val, reason in invalid_level_ids[:5]:
-            print(f"  - ID: {nid}, Name: {name_by_id.get(nid)}, Value: {val}, Reason: {reason}")
+            print(
+                f"  - ID: {nid}, Name: {name_by_id.get(nid)}, Value: {val}, Reason: {reason}"
+            )
 
     if invalid_rate > max_missing_level_rate:
-        print(f"错误: 缺失或非法等级的节点比例 ({invalid_rate:.2%}) 超过阈值 ({max_missing_level_rate:.2%})")
-        raise RuntimeError(f"质量门控未通过: 缺失/非法等级比例过高 ({invalid_rate:.2%})")
+        print(
+            f"错误: 缺失或非法等级的节点比例 ({invalid_rate:.2%}) 超过阈值 ({max_missing_level_rate:.2%})"
+        )
+        raise RuntimeError(
+            f"质量门控未通过: 缺失/非法等级比例过高 ({invalid_rate:.2%})"
+        )
 
     prereq_edges = [e for e in edges if e.get("relation") == "prerequisite"]
     if not prereq_edges:
@@ -118,7 +130,10 @@ def run_quality_gate(
                 f"[{item['tgt_name']}(L{item['tgt_level']})], diff={item['diff']}"
             )
 
-    if violation_rate > max_total_violation_rate or severe_rate > max_severe_violation_rate:
+    if (
+        violation_rate > max_total_violation_rate
+        or severe_rate > max_severe_violation_rate
+    ):
         raise RuntimeError(
             "质量门控未通过: "
             f"违规率={violation_rate:.2%}(阈值 {max_total_violation_rate:.2%}), "
@@ -128,7 +143,9 @@ def run_quality_gate(
 
 def main():
     parser = argparse.ArgumentParser(description="MOOCCubex 异构图离线构建工具")
-    parser.add_argument("--data_dir", type=str, default="data/MOOCCubex", help="原始数据目录")
+    parser.add_argument(
+        "--data_dir", type=str, default="data/MOOCCubex", help="原始数据目录"
+    )
     parser.add_argument("--field", type=str, default="心理学", help="目标领域")
     parser.add_argument("--output_file", type=str, help="输出文件路径 (默认自动推导)")
     parser.add_argument(
@@ -180,15 +197,15 @@ def main():
             max_total_violation_rate=args.max_total_violation_rate,
             max_severe_violation_rate=args.max_severe_violation_rate,
             severe_threshold=args.severe_threshold,
-            max_missing_level_rate=args.max_missing_level_rate
+            max_missing_level_rate=args.max_missing_level_rate,
         )
 
     # 3. 保存为标准 JSON
     output_dir = os.path.dirname(os.path.abspath(args.output_file))
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-        
-    with open(args.output_file, 'w', encoding='utf-8') as f:
+
+    with open(args.output_file, "w", encoding="utf-8") as f:
         json.dump(kg_data, f, ensure_ascii=False, indent=2)
 
     print(f"=== 构建完成！缓存已保存至: {args.output_file} ===")

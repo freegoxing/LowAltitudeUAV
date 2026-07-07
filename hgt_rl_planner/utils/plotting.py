@@ -5,15 +5,19 @@
 便于实验分析、结果复现以及论文或技术报告中的结果展示。
 """
 
-from typing import List, Optional
-
 import matplotlib
-matplotlib.use('Agg') # 强制使用非交互式后端，避免 UserWarning
+
+matplotlib.use("Agg")  # 强制使用非交互式后端，避免 UserWarning
 import matplotlib.pyplot as plt
 
 
-def plot_cumulative_rewards(rewards: List[float], title: str = "Cumulative Reward per Episode", xlabel: str = "Episode",
-                            ylabel: str = "Cumulative Reward", save_path: Optional[str] = None):
+def plot_cumulative_rewards(
+    rewards: list[float],
+    title: str = "Cumulative Reward per Episode",
+    xlabel: str = "Episode",
+    ylabel: str = "Cumulative Reward",
+    save_path: str | None = None,
+):
     """
     绘制每个 Episode 的累积奖励。
     """
@@ -31,9 +35,14 @@ def plot_cumulative_rewards(rewards: List[float], title: str = "Cumulative Rewar
         plt.show()
 
 
-def plot_metric_over_time(metric_values: List[float], metric_name: str, x_axis_values: List,
-                          title: Optional[str] = None, xlabel: str = "Training Episodes",
-                          save_path: Optional[str] = None):
+def plot_metric_over_time(
+    metric_values: list[float],
+    metric_name: str,
+    x_axis_values: list,
+    title: str | None = None,
+    xlabel: str = "Training Episodes",
+    save_path: str | None = None,
+):
     """
     绘制某个指标随训练（或评估）时间的变化。
     Plots a metric over training (or evaluation) time.
@@ -56,7 +65,7 @@ def plot_metric_over_time(metric_values: List[float], metric_name: str, x_axis_v
         title = f"{metric_name} Over {xlabel}"
 
     plt.figure(figsize=(10, 5))
-    plt.plot(x_axis_values, metric_values, marker='o')
+    plt.plot(x_axis_values, metric_values, marker="o")
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(metric_name)
@@ -70,9 +79,14 @@ def plot_metric_over_time(metric_values: List[float], metric_name: str, x_axis_v
         plt.show()
 
 
-def plot_aggregated_metric_over_time(results: dict, metric_name: str, x_axis_values: List,
-                                     title: Optional[str] = None, xlabel: str = "Training Episodes",
-                                     save_path: Optional[str] = None):
+def plot_aggregated_metric_over_time(
+    results: dict,
+    metric_name: str,
+    x_axis_values: list,
+    title: str | None = None,
+    xlabel: str = "Training Episodes",
+    save_path: str | None = None,
+):
     """
     绘制聚合指标随时间的变化（均值曲线 + 标准差阴影）。
     Plots aggregated metric over time (mean curve + std deviation shading).
@@ -122,8 +136,13 @@ def plot_aggregated_metric_over_time(results: dict, metric_name: str, x_axis_val
             curr_values = np.array(values[:min_len])
             processed_values.append(curr_values)
             # 绘制单个种子的淡色曲线 (对齐后的)
-            plt.plot(final_x, curr_values, alpha=0.15, linewidth=0.8,
-                     label=f"Seed {seed}" if len(results) <= 5 else None)
+            plt.plot(
+                final_x,
+                curr_values,
+                alpha=0.15,
+                linewidth=0.8,
+                label=f"Seed {seed}" if len(results) <= 5 else None,
+            )
 
     if not processed_values:
         print("No consistent data found across seeds.")
@@ -136,16 +155,22 @@ def plot_aggregated_metric_over_time(results: dict, metric_name: str, x_axis_val
     std_values = np.std(all_values, axis=0)
 
     # 绘制均值曲线 (使用对齐后的 x 轴)
-    plt.plot(final_x, mean_values, color='blue', linewidth=2, label='Mean')
+    plt.plot(final_x, mean_values, color="blue", linewidth=2, label="Mean")
 
     # 填充标准差区域
-    plt.fill_between(final_x, mean_values - std_values, mean_values + std_values,
-                     color='blue', alpha=0.15, label='Std Dev')
+    plt.fill_between(
+        final_x,
+        mean_values - std_values,
+        mean_values + std_values,
+        color="blue",
+        alpha=0.15,
+        label="Std Dev",
+    )
 
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(metric_name)
-    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.grid(True, linestyle="--", alpha=0.7)
     plt.legend()
     plt.tight_layout()
 
@@ -156,7 +181,11 @@ def plot_aggregated_metric_over_time(results: dict, metric_name: str, x_axis_val
         plt.show()
 
 
-def plot_metrics_summary(metrics: dict, title: str = "Evaluation Metrics Summary", save_path: Optional[str] = None):
+def plot_metrics_summary(
+    metrics: dict,
+    title: str = "Evaluation Metrics Summary",
+    save_path: str | None = None,
+):
     """
     将多个评估指标的总结结果绘制成条形图。
     Plots a summary of multiple evaluation metrics as a bar chart.
@@ -170,8 +199,8 @@ def plot_metrics_summary(metrics: dict, title: str = "Evaluation Metrics Summary
                    Optional, path to save the plot.
     """
     # 支持中文显示
-    plt.rcParams['font.sans-serif'] = ['SimHei']
-    plt.rcParams['axes.unicode_minus'] = False
+    plt.rcParams["font.sans-serif"] = ["SimHei"]
+    plt.rcParams["axes.unicode_minus"] = False
 
     names = list(metrics.keys())
     values = list(metrics.values())
@@ -187,9 +216,9 @@ def plot_metrics_summary(metrics: dict, title: str = "Evaluation Metrics Summary
         plt.text(
             bar.get_width(),
             bar.get_y() + bar.get_height() / 2,
-            f'{bar.get_width():.2f}',
-            va='center',
-            ha='left'
+            f"{bar.get_width():.2f}",
+            va="center",
+            ha="left",
         )
 
     plt.tight_layout()
