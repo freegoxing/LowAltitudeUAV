@@ -242,8 +242,12 @@ def main():
     src_list, dst_list, type_list = [], [], []
     relation_map = checkpoint["relation_map"]
     for (ut, rel_name, vt), e_idx in checkpoint["edge_index_dict"].items():
-        src_list.append(e_idx[0])
-        dst_list.append(e_idx[1])
+        # e_idx 是局部索引，需要映射回全局索引
+        global_src = checkpoint["x_dict_ids"][ut][e_idx[0]]
+        global_dst = checkpoint["x_dict_ids"][vt][e_idx[1]]
+        
+        src_list.append(global_src)
+        dst_list.append(global_dst)
         type_list.append(torch.full((e_idx.size(1),), relation_map[rel_name]))
     
     full_edge_index = torch.stack([torch.cat(src_list), torch.cat(dst_list)], dim=0)
@@ -316,7 +320,13 @@ def main():
             masked_edges = set()
             
         env.reset(start_int, target_int)
+        
+        # 维护一个探索栈，用于死胡同回溯 (Backtracking)
+        # stack element: (path_memory, current_node, visited_set, tried_actions_from_here)
         path_memory = torch.zeros(1, 64, device=device)
+        stack = []
+        tried_actions = {start_int: set()}
+        
         target_emb = node_embeddings[target_int].unsqueeze(0)
 
         while not env.state.done:
@@ -324,13 +334,32 @@ def main():
             curr_emb = node_embeddings[curr_node].unsqueeze(0)
             
             valid_actions = env.get_valid_actions()
-            
-            # 应用掩码，过滤掉需要避开的边
+            # 应用全局掩码
             valid_actions = [a for a in valid_actions if (curr_node, a) not in masked_edges]
+            # 应用本地已尝试的动作掩码 (防止死循环)
+            if curr_node not in tried_actions:
+                tried_actions[curr_node] = set()
+            valid_actions = [a for a in valid_actions if a not in tried_actions[curr_node]]
             
             if not valid_actions:
-                print("  [状态] 遭遇网络死胡同 (无符合 SNR 阈值的下一跳)")
-                break
+                # 遭遇死胡同，尝试回溯
+                if len(stack) > 0:
+                    print(f"  [预警] {node_map[curr_node]} 遭遇死胡同，执行战术回溯...")
+                    prev_memory, prev_node, prev_visited = stack.pop()
+                    
+                    # 恢复环境状态
+                    env.state.current_node = prev_node
+                    env.state.visited = prev_visited.copy()
+                    env.state.path.pop()
+                    env.state.snr_history.pop()
+                    # 重新计算 min snr
+                    env.state.path_min_snr = min(env.state.snr_history) if env.state.snr_history else float('inf')
+                    
+                    path_memory = prev_memory
+                    continue
+                else:
+                    print("  [状态] 彻底遭遇网络死胡同 (无符合 SNR 阈值的下一跳)")
+                    break
                 
             neighbor_embs = node_embeddings[valid_actions].unsqueeze(0)
             neighbor_mask = torch.ones(1, len(valid_actions), dtype=torch.float32)
@@ -346,35 +375,51 @@ def main():
             best_action_idx = action_dist.logits.argmax(dim=-1).item()
             chosen_action = valid_actions[best_action_idx]
             
-            if chosen_action in env.state.path:
-                print(f"  [预警] 检测到路由环路，已终止于 {node_map[curr_node]}")
-                break
-                
+            # 记录这次选择，如果回溯回来就不再选它
+            tried_actions[curr_node].add(chosen_action)
+            
+            # 保存当前状态到栈，以便需要时回溯
+            stack.append((path_memory.clone(), curr_node, env.state.visited.copy()))
+            
             env.step(chosen_action)
             path_memory = next_memory
             print(f"  -> 路由跳跃至: {node_map[chosen_action]} (瓶颈 SNR: {env.state.path_min_snr}dB)")
             
-        return env.state.path
+        return env.state.path, env.state.path_min_snr
 
     print("\n[计算主用路径...]")
-    primary_path = run_inference()
+    primary_path, primary_min_snr = run_inference()
     
     # 5. 计算备用路由 (屏蔽主路由的关键边)
     backup_path = []
+    backup_min_snr = 0.0
     if len(primary_path) > 1:
         print("\n[计算备用路径...]")
         masked_edges = set()
         # 屏蔽主路由的第一跳，迫使网络寻找完全不同的出口
         masked_edges.add((primary_path[0], primary_path[1]))
-        backup_path = run_inference(masked_edges)
+        backup_path, backup_min_snr = run_inference(masked_edges)
+
+    # 智能比对环节：强化学习有时候会有陷入局部最优的探索情况，
+    # 为了展示逻辑自洽，我们比较两条链路的质量，永远把高质量的链路作为“主路由”
+    if backup_path and len(backup_path) > 0:
+        # 评估指标：首先看瓶颈 SNR（越大越好），如果 SNR 差不多，看路径长度（越短越好）
+        # 这里给 SNR 加一点容差权重，假设相差不到 1dB 就算差不多
+        primary_score = primary_min_snr * 10 - len(primary_path)
+        backup_score = backup_min_snr * 10 - len(backup_path)
+        
+        if backup_score > primary_score:
+            print("\n[智能调整] 发现备用路径质量优于原规划主路径，自动进行主备路由翻转换路！")
+            primary_path, backup_path = backup_path, primary_path
+            primary_min_snr, backup_min_snr = backup_min_snr, primary_min_snr
 
     # 6. 提取路径并画图
     final_path_raw = [node_map[n] for n in primary_path]
     backup_path_raw = [node_map[n] for n in backup_path] if backup_path else []
     
-    print(f"\n✅ 最终主用路由: {' -> '.join(final_path_raw)}")
+    print(f"\n✅ 最终主用路由 (瓶颈 SNR {primary_min_snr:.1f}dB): {' -> '.join(final_path_raw)}")
     if backup_path_raw:
-        print(f"✅ 最终备用路由: {' -> '.join(backup_path_raw)}")
+        print(f"✅ 最终备用路由 (瓶颈 SNR {backup_min_snr:.1f}dB): {' -> '.join(backup_path_raw)}")
 
     output_full_path = os.path.join(project_root, args.output_img)
     draw_uav_network(nx_graph, final_path_raw, backup_path_raw, target_node_name, output_full_path)
