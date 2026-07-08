@@ -59,8 +59,8 @@ class KnowledgeGraph(dict[str, list]):
 
 
 # --- 常量定义 ---
-VALID_NODE_TYPES = {"GND-C", "BS", "UAV-R", "UAV-M", "GND-P"}
-VALID_EDGE_RELATIONS = {"Link_BKH", "Link_A2G", "Link_A2A", "DISCONN"}
+VALID_NODE_TYPES = {"GND-C", "BS", "UAV-R", "UAV-M", "GND-P", "UAV-S"}
+VALID_EDGE_RELATIONS = {"Link_BKH", "Link_A2G", "Link_A2A", "Link_G2G", "DISCONN"}
 
 
 # --- 数据加载器 ---
