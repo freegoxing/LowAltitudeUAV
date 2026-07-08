@@ -30,6 +30,8 @@ from uav_semantic_planner.models.models import UAVHGTEncoder, RLPolicyNet
 def draw_uav_network(
     nx_graph: nx.Graph,
     path_nodes: list[str],
+    backup_path_nodes: list[str],
+    target_node_name: str,
     output_path: str,
     title: str = "UAV Semantic Communication Resource Routing",
 ):
@@ -37,7 +39,6 @@ def draw_uav_network(
     plt.figure(figsize=(16, 10))
 
     # 1. 确定多层（层次化）布局
-    # GND-C(0) -> BS(1) -> UAV-R(2) -> UAV-M(3) -> GND-P(4)
     layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "GND-P": 4}
     for node, data in nx_graph.nodes(data=True):
         ntype = data.get("type", "GND-P")
@@ -47,11 +48,11 @@ def draw_uav_network(
 
     # 2. 区分节点类型进行绘制
     type_colors = {
-        "GND-C": "#FF6B6B",  # 红色: 指挥车
-        "BS": "#4ECDC4",     # 青色: 基站
-        "UAV-R": "#45B7D1",  # 蓝色: 中继
-        "UAV-M": "#96CEB4",  # 绿色: 任务机
-        "GND-P": "#FFEEAD",  # 黄色: 地面人员
+        "GND-C": "#FF6B6B",
+        "BS": "#4ECDC4",
+        "UAV-R": "#45B7D1",
+        "UAV-M": "#96CEB4",
+        "GND-P": "#FFEEAD",
     }
 
     for ntype, color in type_colors.items():
@@ -68,8 +69,25 @@ def draw_uav_network(
                 label=ntype,
             )
 
+    # 特别高亮起点和终点 (Target)
+    if path_nodes:
+        start_node = path_nodes[0]
+        # 起点 (绿色边框加粗)
+        nx.draw_networkx_nodes(
+            nx_graph, pos, nodelist=[start_node], node_size=1200, edgecolors="#32CD32", linewidths=4.0
+        )
+        
+    # 目标点 (紫色边框加粗，并且特别标注)
+    if nx_graph.has_node(target_node_name):
+        nx.draw_networkx_nodes(
+            nx_graph, pos, nodelist=[target_node_name], node_size=1200, edgecolors="#9932CC", linewidths=4.0
+        )
+        # 为目标点画一个五角星标记
+        nx.draw_networkx_nodes(
+            nx_graph, pos, nodelist=[target_node_name], node_shape="*", node_size=2500, edgecolors="#9932CC", node_color="none"
+        )
+
     # 3. 区分边类型进行绘制
-    # 正常边 (灰色虚线)，DISCONN断连预警 (红色点线)
     normal_edges = [(u, v) for u, v, d in nx_graph.edges(data=True) if d.get("relation") != "DISCONN"]
     disconn_edges = [(u, v) for u, v, d in nx_graph.edges(data=True) if d.get("relation") == "DISCONN"]
 
@@ -80,13 +98,31 @@ def draw_uav_network(
         nx_graph, pos, edgelist=disconn_edges, edge_color="#FF9999", style="dotted", width=2.0, alpha=0.7
     )
 
-    # 4. 高亮 RL 规划出的资源路由路径 (加粗红色箭头)
+    # 4. 高亮 RL 规划出的 备用 资源路由路径 (加粗橙色虚线箭头)
+    backup_path_edges = []
+    if backup_path_nodes and len(backup_path_nodes) > 1:
+        for i in range(len(backup_path_nodes) - 1):
+            backup_path_edges.append((backup_path_nodes[i], backup_path_nodes[i + 1]))
+
+        nx.draw_networkx_edges(
+            nx_graph,
+            pos,
+            edgelist=backup_path_edges,
+            edge_color="#FF9900",
+            width=2.5,
+            style="dashed",
+            arrows=True,
+            arrowsize=20,
+            arrowstyle="-|>",
+            connectionstyle="arc3,rad=-0.15"  # 反向弯曲，避免重叠
+        )
+
+    # 5. 高亮 RL 规划出的 主用 资源路由路径 (加粗红色实线箭头)
     path_edges = []
     if path_nodes and len(path_nodes) > 1:
         for i in range(len(path_nodes) - 1):
             path_edges.append((path_nodes[i], path_nodes[i + 1]))
 
-        # 使用有向箭头高亮路径
         nx.draw_networkx_edges(
             nx_graph,
             pos,
@@ -96,30 +132,65 @@ def draw_uav_network(
             arrows=True,
             arrowsize=25,
             arrowstyle="-|>",
-            connectionstyle="arc3,rad=0.1" # 轻微弯曲以避开双向边重叠
+            connectionstyle="arc3,rad=0.1"
         )
 
-    # 5. 绘制标签
+    # 6. 绘制标签
     nx.draw_networkx_labels(nx_graph, pos, font_size=9, font_weight="bold")
 
-    # 给路径边加上 SNR 数值标签
     edge_labels = {}
     for u, v in path_edges:
         if nx_graph.has_edge(u, v):
             snr = nx_graph[u][v].get("snr", 0.0)
             edge_labels[(u, v)] = f"{snr}dB"
-    
+    for u, v in backup_path_edges:
+        if nx_graph.has_edge(u, v) and (u, v) not in edge_labels:
+            snr = nx_graph[u][v].get("snr", 0.0)
+            edge_labels[(u, v)] = f"{snr}dB (Backup)"
+            
     nx.draw_networkx_edge_labels(
-        nx_graph, pos, edge_labels=edge_labels, font_color="red", font_size=10, font_weight="bold"
+        nx_graph, pos, edge_labels=edge_labels, font_color="black", font_size=8, font_weight="bold", bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.7)
     )
 
-    # 6. 图例与标题
-    plt.legend(scatterpoints=1, frameon=True, loc="upper right", title="Node Types")
+    # 7. 图例与标题
+    import matplotlib.lines as mlines
+    
+    legend_handles = []
+    for ntype, color in type_colors.items():
+        handle = mlines.Line2D(
+            [], [], color="w", marker="o", markerfacecolor=color,
+            markeredgecolor="black", markersize=10, label=f"Node: {ntype}"
+        )
+        legend_handles.append(handle)
+        
+    legend_handles.append(mlines.Line2D(
+        [], [], color="w", marker="*", markerfacecolor="none",
+        markeredgecolor="#9932CC", markersize=15, markeredgewidth=2, label="Target Destination"
+    ))
+
+    legend_handles.append(mlines.Line2D(
+        [], [], color="#B0B0B0", linestyle="dashed", linewidth=1.5, label="Available Link (SNR >= threshold)"
+    ))
+    legend_handles.append(mlines.Line2D(
+        [], [], color="#FF9999", linestyle="dotted", linewidth=2.0, label="DISCONN Warning (Weak/Broken)"
+    ))
+    legend_handles.append(mlines.Line2D(
+        [], [], color="#FF3366", linestyle="-", linewidth=3.5, label="Primary Routing Path"
+    ))
+    legend_handles.append(mlines.Line2D(
+        [], [], color="#FF9900", linestyle="dashed", linewidth=2.5, label="Backup Routing Path"
+    ))
+
+    plt.legend(handles=legend_handles, frameon=True, loc="upper right", title="Network Elements Legend", fontsize=9)
     plt.title(title, fontsize=16, fontweight="bold", pad=20)
+    
+    info_text = f"Start Node: {path_nodes[0] if path_nodes else 'N/A'}\nTarget Node: {target_node_name}"
+    plt.text(0.02, 0.98, info_text, transform=plt.gca().transAxes, fontsize=12, 
+             verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
     plt.axis("off")
     plt.tight_layout()
 
-    # 保存
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -131,9 +202,12 @@ def main():
     parser.add_argument("--json_path", type=str, default="data/mock_uav_network.json")
     parser.add_argument("--graph_pt", type=str, default="checkpoints/UAV_Demo/uav_hetero_graph.pt")
     parser.add_argument("--model_pt", type=str, default="checkpoints/UAV_Demo/uav_policy_final.pt")
-    parser.add_argument("--output_img", type=str, default="checkpoints/UAV_Demo/routing_visualization.png")
-    parser.add_argument("--start_node", type=str, default="GND-C-1")
-    parser.add_argument("--target_node", type=str, default="GND-P-1")
+    parser.add_argument("--output_img", type=str, default="visualizations/routing_flow.png")
+    # 增加指定起点和终点的参数
+    parser.add_argument("--start_node", type=str, default="", help="指定起点的名称，例如 GND-C-1")
+    parser.add_argument("--target_node", type=str, default="", help="指定终点的名称，例如 BS-2")
+    # 自动寻路开关 (如果指定了起点终点，请将此参数设为 False)
+    parser.add_argument("--auto_find", action="store_true", help="是否在未指定节点时自动寻找连通节点")
     args = parser.parse_args()
 
     device = torch.device("cpu") # 可视化直接用 CPU 即可
@@ -158,13 +232,6 @@ def main():
     checkpoint = torch.load(graph_pt_path, map_location=device, weights_only=False)
     raw_id_map = checkpoint["raw_id_map"] # name -> int
     node_map = checkpoint["node_map"]     # int -> name
-    
-    if args.start_node not in raw_id_map or args.target_node not in raw_id_map:
-        print(f"节点 {args.start_node} 或 {args.target_node} 不在图谱中，请检查名称。")
-        return
-
-    start_int = raw_id_map[args.start_node]
-    target_int = raw_id_map[args.target_node]
 
     # --- 以下为极简版 RL 推理过程 ---
     # 为了保证能跑通环境，我们需要重新提取 embeddings
@@ -215,50 +282,102 @@ def main():
         policy.load_state_dict(torch.load(model_pt_path, map_location=device, weights_only=True))
     policy.eval()
 
-    # 3. 开始一次评估 (寻路)
-    print(f"--- 启动智能路由推演: {args.start_node} -> {args.target_node} ---")
-    env.reset(start_int, target_int)
-    path_memory = torch.zeros(1, 64, device=device)
-    target_emb = node_embeddings[target_int].unsqueeze(0)
+    # 3. 决定起止点
+    start_int, target_int = None, None
+    
+    # 如果用户通过命令行指定了具体的起止点
+    if args.start_node and args.target_node:
+        if args.start_node not in raw_id_map or args.target_node not in raw_id_map:
+            print(f"❌ 错误: 节点 '{args.start_node}' 或 '{args.target_node}' 不在图谱中，请检查名称。")
+            return
+        start_int = raw_id_map[args.start_node]
+        target_int = raw_id_map[args.target_node]
+    elif args.auto_find:
+        from uav_semantic_planner.utils.evaluation_lib import sample_uav_communication_pairs
+        print("--- 正在自动寻找可达的通信对 ---")
+        pairs = sample_uav_communication_pairs(env, num_samples=5)
+        if pairs:
+            best_pair = pairs[0]
+            start_int, target_int = best_pair[0], best_pair[1]
+    
+    # 兜底逻辑
+    if start_int is None or target_int is None:
+        start_int = raw_id_map.get("GND-C-1", 0)
+        target_int = raw_id_map.get("GND-P-1", 1)
 
-    while not env.state.done:
-        curr_node = env.state.current_node
-        curr_emb = node_embeddings[curr_node].unsqueeze(0)
-        
-        valid_actions = env.get_valid_actions()
-        if not valid_actions:
-            print("  [状态] 遭遇网络死胡同 (无符合 SNR 阈值的下一跳)")
-            break
-            
-        neighbor_embs = node_embeddings[valid_actions].unsqueeze(0)
-        neighbor_mask = torch.ones(1, len(valid_actions), dtype=torch.float32)
+    start_node_name = node_map[start_int]
+    target_node_name = node_map[target_int]
 
-        with torch.no_grad():
-            action_dist, _, next_memory = policy(
-                curr_emb, target_emb, neighbor_embs, path_memory, neighbor_mask
-            )
+    # 4. 开始一次评估 (主用路由寻路)
+    print(f"--- 启动智能路由推演: {start_node_name} -> {target_node_name} ---")
+    
+    def run_inference(masked_edges=None):
+        if masked_edges is None:
+            masked_edges = set()
             
-        if action_dist is None:
-            break
-            
-        best_action_idx = action_dist.logits.argmax(dim=-1).item()
-        chosen_action = valid_actions[best_action_idx]
-        
-        # 为了演示，如果遇到循环则强行打断
-        if chosen_action in env.state.path:
-            print(f"  [预警] 检测到路由环路，已终止于 {node_map[curr_node]}")
-            break
-            
-        env.step(chosen_action)
-        path_memory = next_memory
-        print(f"  -> 路由跳跃至: {node_map[chosen_action]} (瓶颈 SNR: {env.state.path_min_snr}dB)")
+        env.reset(start_int, target_int)
+        path_memory = torch.zeros(1, 64, device=device)
+        target_emb = node_embeddings[target_int].unsqueeze(0)
 
-    # 4. 提取路径并画图
-    final_path_raw = [node_map[n] for n in env.state.path]
-    print(f"\n✅ 最终决策路由: {' -> '.join(final_path_raw)}")
+        while not env.state.done:
+            curr_node = env.state.current_node
+            curr_emb = node_embeddings[curr_node].unsqueeze(0)
+            
+            valid_actions = env.get_valid_actions()
+            
+            # 应用掩码，过滤掉需要避开的边
+            valid_actions = [a for a in valid_actions if (curr_node, a) not in masked_edges]
+            
+            if not valid_actions:
+                print("  [状态] 遭遇网络死胡同 (无符合 SNR 阈值的下一跳)")
+                break
+                
+            neighbor_embs = node_embeddings[valid_actions].unsqueeze(0)
+            neighbor_mask = torch.ones(1, len(valid_actions), dtype=torch.float32)
+
+            with torch.no_grad():
+                action_dist, _, next_memory = policy(
+                    curr_emb, target_emb, neighbor_embs, path_memory, neighbor_mask
+                )
+                
+            if action_dist is None:
+                break
+                
+            best_action_idx = action_dist.logits.argmax(dim=-1).item()
+            chosen_action = valid_actions[best_action_idx]
+            
+            if chosen_action in env.state.path:
+                print(f"  [预警] 检测到路由环路，已终止于 {node_map[curr_node]}")
+                break
+                
+            env.step(chosen_action)
+            path_memory = next_memory
+            print(f"  -> 路由跳跃至: {node_map[chosen_action]} (瓶颈 SNR: {env.state.path_min_snr}dB)")
+            
+        return env.state.path
+
+    print("\n[计算主用路径...]")
+    primary_path = run_inference()
+    
+    # 5. 计算备用路由 (屏蔽主路由的关键边)
+    backup_path = []
+    if len(primary_path) > 1:
+        print("\n[计算备用路径...]")
+        masked_edges = set()
+        # 屏蔽主路由的第一跳，迫使网络寻找完全不同的出口
+        masked_edges.add((primary_path[0], primary_path[1]))
+        backup_path = run_inference(masked_edges)
+
+    # 6. 提取路径并画图
+    final_path_raw = [node_map[n] for n in primary_path]
+    backup_path_raw = [node_map[n] for n in backup_path] if backup_path else []
+    
+    print(f"\n✅ 最终主用路由: {' -> '.join(final_path_raw)}")
+    if backup_path_raw:
+        print(f"✅ 最终备用路由: {' -> '.join(backup_path_raw)}")
 
     output_full_path = os.path.join(project_root, args.output_img)
-    draw_uav_network(nx_graph, final_path_raw, output_full_path)
+    draw_uav_network(nx_graph, final_path_raw, backup_path_raw, target_node_name, output_full_path)
 
 
 if __name__ == "__main__":
