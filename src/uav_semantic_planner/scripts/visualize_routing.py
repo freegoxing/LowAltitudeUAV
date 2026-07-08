@@ -42,12 +42,12 @@ def draw_uav_network(
     plt.figure(figsize=(16, 10))
 
     # 1. 确定多层（层次化）布局
-    layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "UAV-S": 3, "GND-P": 4}
-    layer_nodes = {0: [], 1: [], 2: [], 3: [], 4: []}
+    layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "UAV-S": 4, "GND-P": 5}
+    layer_nodes = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
     for node, data in nx_graph.nodes(data=True):
         ntype = data.get("type", "GND-P")
-        layer_idx = layer_map.get(ntype, 4)
+        layer_idx = layer_map.get(ntype, 5)
         nx_graph.nodes[node]["layer"] = layer_idx
         layer_nodes[layer_idx].append(node)
 
@@ -213,9 +213,8 @@ def main():
     parser.add_argument("--graph_pt", type=str, default="checkpoints/UAV_Demo/uav_hetero_graph.pt")
     parser.add_argument("--model_pt", type=str, default="checkpoints/UAV_Demo/uav_policy_final.pt")
     parser.add_argument("--output_img", type=str, default="visualizations/routing_flow.png")
-    # 增加指定起点和终点的参数
-    parser.add_argument("--start_node", type=str, default="", help="指定起点的名称，例如 GND-C-1")
-    parser.add_argument("--target_node", type=str, default="", help="指定终点的名称，例如 BS-2")
+    # 增加指定起点（即发现目标的节点）的参数，终点强制为 GND-C
+    parser.add_argument("--tgt_node", type=str, default="", help="指定发现目标的节点名称(如 UAV-S-1)，数据将自动回传至指挥中心")
     # 全局随机种子
     parser.add_argument("--seed", type=int, default=4321, help="全局随机种子")
     # 自动寻路开关 (如果指定了起点终点，请将此参数设为 False)
@@ -305,20 +304,46 @@ def main():
     # 3. 决定起止点
     start_int, target_int = None, None
     
-    # 如果用户通过命令行指定了具体的起止点
-    if args.start_node and args.target_node:
-        if args.start_node not in raw_id_map or args.target_node not in raw_id_map:
-            print(f"❌ 错误: 节点 '{args.start_node}' 或 '{args.target_node}' 不在图谱中，请检查名称。")
+    # 强制终点类为指挥中心
+    gnd_c_nodes = [k for k, v in node_map.items() if "GND-C" in v]
+    if not gnd_c_nodes:
+        print("❌ 错误: 图谱中没有找到指挥中心 (GND-C) 节点！")
+        return
+        
+    # 如果用户通过命令行指定了具体的目标发现节点
+    if args.tgt_node:
+        if args.tgt_node not in raw_id_map:
+            print(f"❌ 错误: 节点 '{args.tgt_node}' 不在图谱中，请检查名称。")
             return
-        start_int = raw_id_map[args.start_node]
-        target_int = raw_id_map[args.target_node]
+        start_int = raw_id_map[args.tgt_node]
+        
+        # 寻找一个可达的 GND-C
+        for t in gnd_c_nodes:
+            if nx.has_path(nx_graph, node_map[start_int], node_map[t]):
+                target_int = t
+                break
+                
+        if target_int is None:
+            print(f"❌ 错误: 节点 '{args.tgt_node}' 无法连通到任何指挥中心 (GND-C)！")
+            return
+            
     elif args.auto_find:
-        from uav_semantic_planner.utils.evaluation_lib import sample_uav_communication_pairs
-        print("--- 正在自动寻找可达的通信对 ---")
-        pairs = sample_uav_communication_pairs(env, num_samples=5)
-        if pairs:
-            best_pair = pairs[0]
-            start_int, target_int = best_pair[0], best_pair[1]
+        print("--- 正在自动寻找从侦察节点或救援人员到指挥中心(GND-C)的可达路径 ---")
+        source_nodes = [k for k, v in node_map.items() if "UAV-S" in v or "GND-P" in v]
+        
+        import random
+        random.shuffle(source_nodes)
+        random.shuffle(gnd_c_nodes)
+        
+        found = False
+        for s in source_nodes:
+            for t in gnd_c_nodes:
+                if nx.has_path(nx_graph, node_map[s], node_map[t]):
+                    start_int, target_int = s, t
+                    found = True
+                    break
+            if found:
+                break
     
     # 兜底逻辑
     if start_int is None or target_int is None:
