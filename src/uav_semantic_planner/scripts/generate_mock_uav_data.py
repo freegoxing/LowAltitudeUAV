@@ -15,8 +15,8 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
     """
     生成一个用于 Demo 的轻量级低空无人机通信网络图谱。
 
-    节点类型: GND-C, BS, UAV-R, UAV-M, GND-P
-    边类型: Link_BKH, Link_A2G, Link_A2A, DISCONN
+    节点类型: GND-C, BS, UAV-R, UAV-M, GND-P, UAV-S
+    边类型: Link_BKH, Link_A2G, Link_A2A, Link_G2G, DISCONN
     """
     nodes = []
     edges = []
@@ -28,6 +28,7 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
         "UAV-R": {"count": 8, "desc": "中继无人机"},
         "UAV-M": {"count": 10, "desc": "任务无人机"},
         "GND-P": {"count": 5, "desc": "地面救援人员(终端)"},
+        "UAV-S": {"count": 3, "desc": "侦察无人机"},
     }
 
     # 生成节点
@@ -119,7 +120,14 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
         ):
             add_edge(uav_m, gnd_p, "Link_A2G", snr_range=(5, 15), bw_range=(5, 20))
 
-    # (6) 额外的 DISCONN 边：随机选取一些节点对，模拟断连预警
+    # (6) 侦察无人机连中继 (UAV-S <-> UAV-R) — 空空链路
+    for uav_s in node_ids_by_type["UAV-S"]:
+        for uav_r in random.sample(
+            node_ids_by_type["UAV-R"], random.choice([1, 2])
+        ):
+            add_edge(uav_s, uav_r, "Link_A2A", snr_range=(8, 18), bw_range=(10, 30))
+
+    # (7) 额外的 DISCONN 边：随机选取一些节点对，模拟断连预警
     all_node_ids = [n["id"] for n in nodes]
     num_disconn = random.randint(3, 6)
     for _ in range(num_disconn):
@@ -159,7 +167,8 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
     }
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
+    # Go up 3 levels: scripts -> uav_semantic_planner -> src -> LowAltitudeUAV
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
     final_output_file = os.path.join(project_root, output_file)
 
     os.makedirs(os.path.dirname(final_output_file), exist_ok=True)

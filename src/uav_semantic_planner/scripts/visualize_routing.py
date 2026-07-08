@@ -42,7 +42,7 @@ def draw_uav_network(
     plt.figure(figsize=(16, 10))
 
     # 1. 确定多层（层次化）布局
-    layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "GND-P": 4}
+    layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "UAV-S": 3, "GND-P": 4}
     layer_nodes = {0: [], 1: [], 2: [], 3: [], 4: []}
 
     for node, data in nx_graph.nodes(data=True):
@@ -62,6 +62,7 @@ def draw_uav_network(
         "UAV-R": "#45B7D1",
         "UAV-M": "#96CEB4",
         "GND-P": "#FFEEAD",
+        "UAV-S": "#B19CD9",
     }
 
     for ntype, color in type_colors.items():
@@ -321,8 +322,8 @@ def main():
     
     # 兜底逻辑
     if start_int is None or target_int is None:
-        start_int = raw_id_map.get("GND-C-1", 0)
-        target_int = raw_id_map.get("GND-P-1", 1)
+        start_int = raw_id_map.get("UAV-S-1", 0)
+        target_int = raw_id_map.get("GND-C-1", 1)
 
     start_node_name = node_map[start_int]
     target_node_name = node_map[target_int]

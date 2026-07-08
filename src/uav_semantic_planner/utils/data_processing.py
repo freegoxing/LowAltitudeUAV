@@ -145,7 +145,7 @@ def process_uav_graph(
     old_id_to_new_id = {node["id"]: id_to_id.get(node["id"]) for node in nodes}
 
     # --- 动态映射节点类型 ---
-    all_possible_types = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P"]
+    all_possible_types = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P", "UAV-S"]
     type_to_id = {t: i for i, t in enumerate(all_possible_types)}
     node_types = torch.zeros(num_nodes, dtype=torch.long)
     for node in nodes:
@@ -221,7 +221,7 @@ def convert_to_hetero(
     将同构图 Data 转换为异构图结构，返回 HGT 预期的三元组。
     """
     # 定义 UAV 标准类型顺序
-    all_possible_types = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P"]
+    all_possible_types = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P", "UAV-S"]
 
     # 识别当前子图中实际存在的类型 ID
     unique_type_ids = torch.unique(node_types).tolist()
