@@ -11,6 +11,9 @@ import os
 import sys
 
 import matplotlib
+import numpy as np
+from panel import param
+
 matplotlib.use("Agg")  # 强制使用无头模式
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -40,12 +43,18 @@ def draw_uav_network(
 
     # 1. 确定多层（层次化）布局
     layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "GND-P": 4}
+    layer_nodes = {0: [], 1: [], 2: [], 3: [], 4: []}
+
     for node, data in nx_graph.nodes(data=True):
         ntype = data.get("type", "GND-P")
-        nx_graph.nodes[node]["layer"] = layer_map.get(ntype, 4)
+        layer_idx = layer_map.get(ntype, 4)
+        nx_graph.nodes[node]["layer"] = layer_idx
+        layer_nodes[layer_idx].append(node)
 
-    pos = nx.multipartite_layout(nx_graph, subset_key="layer", align="horizontal")
+    for idx in layer_nodes:
+        layer_nodes[idx].sort()
 
+    pos = nx.multipartite_layout(nx_graph, subset_key=layer_nodes, align="horizontal")
     # 2. 区分节点类型进行绘制
     type_colors = {
         "GND-C": "#FF6B6B",
@@ -206,12 +215,18 @@ def main():
     # 增加指定起点和终点的参数
     parser.add_argument("--start_node", type=str, default="", help="指定起点的名称，例如 GND-C-1")
     parser.add_argument("--target_node", type=str, default="", help="指定终点的名称，例如 BS-2")
+    # 全局随机种子
+    parser.add_argument("--seed", type=int, default=4321, help="全局随机种子")
     # 自动寻路开关 (如果指定了起点终点，请将此参数设为 False)
     parser.add_argument("--auto_find", action="store_true", help="是否在未指定节点时自动寻找连通节点")
     args = parser.parse_args()
 
     device = torch.device("cpu") # 可视化直接用 CPU 即可
-    
+
+    seed = args.seed
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
     # 1. 加载原生 JSON 构建 NetworkX 拓扑
     json_full_path = os.path.join(project_root, args.json_path)
     with open(json_full_path, "r", encoding="utf-8") as f:
