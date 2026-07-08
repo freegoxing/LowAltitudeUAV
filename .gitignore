@@ -5,5 +5,7 @@ checkpoints/
 *.pt
 
 **/__pycache__/
-
 *.pyc
+
+visualizations/
+*.png
