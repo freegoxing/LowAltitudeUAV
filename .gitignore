@@ -1,6 +1,9 @@
 .venv
 .idea
 
+checkpoints/
+*.pt
+
 **/__pycache__/
 
 *.pyc
