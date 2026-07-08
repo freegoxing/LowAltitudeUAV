@@ -8,9 +8,6 @@ import os
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
-from torch_geometric.utils import negative_sampling
-
 from hgt_rl_planner.data_loader import (
     load_custom_kg_from_json,
     load_mooccubex_subgraph,
@@ -21,6 +18,8 @@ from hgt_rl_planner.utils.data_processing import (
     process_custom_kg,
 )
 from hgt_rl_planner.utils.seeding import set_seed
+from torch.cuda.amp import GradScaler, autocast
+from torch_geometric.utils import negative_sampling
 
 
 class HGCTrainer:

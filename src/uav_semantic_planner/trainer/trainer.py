@@ -1,302 +1,238 @@
 """
-强化学习训练逻辑模块
+UAV RL 训练器模块
 
-实现对应的训练器 (RLTrainer)，专门适配大规模异构教育图谱。
+负责协调强化学习（Actor-Critic）在 UAV 语义通信网络上的训练。
+处理了批处理、梯度计算和损失聚合。
 """
 
-import logging
-
-import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 
-from .environment import RLEnvironment
-from .models import RLPolicyNet
-
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+from uav_semantic_planner.envs.environment import UAVRLEnvironment
+from uav_semantic_planner.models.models import RLPolicyNet
 
 
 class RLTrainer:
+    """强化学习训练器 (批量版本，用于 UAV 通信路由寻路)"""
+
     def __init__(
         self,
-        environment: RLEnvironment,
-        model: RLPolicyNet,
+        env: UAVRLEnvironment,
+        policy_net: RLPolicyNet,
         node_embeddings: torch.Tensor,
         device: torch.device,
         learning_rate: float = 0.001,
+        gamma: float = 0.99,
+        entropy_coef: float = 0.01,
     ):
-        self.env = environment
-        self.model = model
-        self.node_embeddings = node_embeddings
+        self.env = env
+        self.policy_net = policy_net.to(device)
+        self.node_embeddings = node_embeddings.to(device)
         self.device = device
-        self.optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        self.gamma = 0.99
-        self.entropy_coeff = 0.01
+        self.gamma = gamma
+        self.entropy_coef = entropy_coef
 
-        logging.info(f"RLTrainer initialized with device: {self.device}")
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
 
-    def _get_base_model(self):
-        """处理 DDP 包装情况，获取原始模型"""
-        if hasattr(self.model, "module"):
-            return self.model.module
-        return self.model
+    def _prepare_neighbors(self, state, valid_actions):
+        """为单实例准备邻居的 Embedding 和 Mask"""
+        if not valid_actions:
+            return None, None, None
 
-    def train_episode(
-        self, start_node: int, target_node: int
-    ) -> tuple[float, int, bool, torch.Tensor]:
-        """保留单实例训练，用于兼容旧代码或小规模调试"""
-        self.model.train()
-        base_model = self._get_base_model()
-        state = self.env.reset(start_node, target_node)
-        log_probs, values, rewards, entropies = [], [], [], []
-        hidden = torch.zeros(1, base_model.gru_hidden_dim, device=self.device)
-
-        for _ in range(self.env.max_path_length):
-            valid_actions = self.env.get_valid_actions()
-            if not valid_actions:
-                break
-
-            current_emb = self.node_embeddings[state].unsqueeze(0).to(self.device)
-            target_emb = self.node_embeddings[target_node].to(self.device)
-            neighbor_embs = self.node_embeddings[valid_actions].to(self.device)
-
-            # 调用已升级的 batch-ready 模型 (batch_size=1)
-            action_dist, value, next_hidden = self.model(
-                current_emb, target_emb, neighbor_embs.unsqueeze(0), hidden, None
-            )
-            hidden = next_hidden
-
-            if action_dist is None:
-                break
-
-            action_idx = action_dist.sample()
-            action = valid_actions[action_idx.item()]
-
-            next_state, reward, done, _ = self.env.step(action)
-
-            log_probs.append(action_dist.log_prob(action_idx))
-            values.append(value)
-            rewards.append(reward)
-            entropies.append(action_dist.entropy())
-
-            state = next_state
-            if done:
-                break
-
-        if not rewards:
-            return 0, 0, False, None
-        return self._compute_loss(rewards, values, log_probs, entropies)
-
-    def _compute_loss(self, rewards, values, log_probs, entropies):
-        """计算 A2C 损失"""
-        returns, R = [], 0
-        for r in reversed(rewards):
-            R = r + self.gamma * R
-            returns.insert(0, R)
-
-        returns = torch.tensor(returns, device=self.device)
-        values_tensor = torch.cat(values).view(-1)
-        log_probs_tensor = torch.stack(log_probs).view(-1)
-        entropies_tensor = torch.stack(entropies).view(-1)
-
-        advantages = returns - values_tensor.detach()
-        policy_loss = -(log_probs_tensor * advantages).mean()
-        value_loss = F.mse_loss(values_tensor, returns)
-        entropy_loss = -self.entropy_coeff * entropies_tensor.mean()
-
-        return sum(rewards), len(rewards), True, policy_loss + value_loss + entropy_loss
+        neighbor_embs = self.node_embeddings[valid_actions]
+        neighbor_mask = torch.ones(
+            len(valid_actions), dtype=torch.float32, device=self.device
+        )
+        actions_tensor = torch.tensor(
+            valid_actions, dtype=torch.long, device=self.device
+        )
+        return neighbor_embs, neighbor_mask, actions_tensor
 
     def train_batch(
         self, batch_pairs: list[tuple[int, int]]
-    ) -> tuple[float, float, torch.Tensor]:
-        """
-        真正的批量训练函数：同时推进多个 Episode，释放 GPU 算力。
-        """
-        self.model.train()
-        base_model = self._get_base_model()
+    ) -> tuple[float, float, torch.Tensor | None]:
+        """批量训练 Actor-Critic"""
         batch_size = len(batch_pairs)
+        if batch_size == 0:
+            return 0.0, 0.0, None
 
-        # 1. 初始化 batch 状态
+        self.policy_net.train()
         batch_states = self.env.reset_batch(batch_pairs, self.device)
-
-        # 提取当前节点和目标节点
-        states = torch.tensor(
-            [s.current_node for s in batch_states], device=self.device
+        
+        # RNN 初始隐藏状态
+        batch_memory = torch.zeros(
+            batch_size, self.policy_net.gru_hidden_dim, device=self.device
         )
-        target_nodes = torch.tensor(
-            [s.target_node for s in batch_states], device=self.device
-        )
-        hiddens = torch.zeros(batch_size, base_model.gru_hidden_dim, device=self.device)
 
-        # 轨迹存储
-        batch_log_probs = [[] for _ in range(batch_size)]
-        batch_values = [[] for _ in range(batch_size)]
-        batch_rewards = [[] for _ in range(batch_size)]
-        batch_entropies = [[] for _ in range(batch_size)]
-        # 记录真实导航成功率（是否到达 target），避免与“可反传样本占比”混淆
-        batch_success = [False for _ in range(batch_size)]
+        log_probs_list = [[] for _ in range(batch_size)]
+        values_list = [[] for _ in range(batch_size)]
+        rewards_list = [[] for _ in range(batch_size)]
+        entropies_list = [[] for _ in range(batch_size)]
 
-        for _ in range(self.env.max_path_length):
-            if all(s.done for s in batch_states):
-                break
+        max_steps = self.env.max_path_length
+        step_idx = 0
+        active_mask = torch.ones(batch_size, dtype=torch.bool, device=self.device)
 
-            # 2. 收集有效邻居
-            batch_valid_actions = []
+        while active_mask.any() and step_idx < max_steps:
+            active_indices = active_mask.nonzero(as_tuple=True)[0].cpu().numpy()
+
+            # 收集当前步输入
+            current_nodes = [batch_states[i].current_node for i in active_indices]
+            target_nodes = [batch_states[i].target_node for i in active_indices]
+
+            curr_embs = self.node_embeddings[current_nodes]
+            tgt_embs = self.node_embeddings[target_nodes]
+            curr_memories = batch_memory[active_indices]
+
+            # 准备各 instance 的邻居
+            all_neighbor_embs = []
+            all_neighbor_masks = []
+            all_action_tensors = []
             max_neighbors = 0
-            for i in range(batch_size):
-                if batch_states[i].done:
-                    batch_valid_actions.append([])
-                    continue
-                actions = self.env.get_valid_actions(batch_states[i])
-                batch_valid_actions.append(actions)
-                max_neighbors = max(max_neighbors, len(actions))
 
-            if max_neighbors == 0:
-                break
-
-            # 3. 批量决策
-            neighbor_embs = torch.zeros(
-                batch_size,
-                max_neighbors,
-                self.node_embeddings.size(1),
-                device=self.device,
-            )
-            neighbor_mask = torch.zeros(batch_size, max_neighbors, device=self.device)
-            for i, actions in enumerate(batch_valid_actions):
-                if actions:
-                    num_a = len(actions)
-                    neighbor_embs[i, :num_a] = self.node_embeddings[actions]
-                    neighbor_mask[i, :num_a] = 1
-
-            current_embs = self.node_embeddings[states]
-            target_embs = self.node_embeddings[target_nodes]
-            action_dist, state_values, next_hiddens = self.model(
-                current_embs, target_embs, neighbor_embs, hiddens, neighbor_mask
-            )
-            hiddens = next_hiddens
-
-            # 4. 执行动作
-            actions_to_take = action_dist.sample()
-            actions_cpu = actions_to_take.cpu().numpy()
-
-            next_nodes_list = []
-            for i, act_idx in enumerate(actions_cpu):
-                if not batch_states[i].done and act_idx < len(batch_valid_actions[i]):
-                    next_nodes_list.append(batch_valid_actions[i][act_idx])
-                else:
-                    next_nodes_list.append(0)
-
-            next_nodes_tensor = torch.tensor(next_nodes_list, device=self.device)
-            next_embs = self.node_embeddings[next_nodes_tensor]
-            potentials = (
-                torch.cosine_similarity(next_embs, target_embs, eps=1e-8)
-                .detach()
-                .cpu()
-                .numpy()
-            )
-
-            final_actions = [
-                next_nodes_list[i]
-                if (
-                    not batch_states[i].done
-                    and actions_cpu[i] < len(batch_valid_actions[i])
+            for idx in active_indices:
+                valid_actions = self.env.get_valid_actions(batch_states[idx])
+                n_embs, n_mask, a_tensor = self._prepare_neighbors(
+                    batch_states[idx], valid_actions
                 )
-                else None
-                for i in range(batch_size)
-            ]
+                all_neighbor_embs.append(n_embs)
+                all_neighbor_masks.append(n_mask)
+                all_action_tensors.append(a_tensor)
+                if n_embs is not None:
+                    max_neighbors = max(max_neighbors, n_embs.size(0))
 
-            step_results = self.env.step_batch(batch_states, final_actions, potentials)
+            # 组装 batch neighbor tensors (需 padding)
+            if max_neighbors > 0:
+                padded_embs = torch.zeros(
+                    len(active_indices),
+                    max_neighbors,
+                    self.policy_net.embedding_dim,
+                    device=self.device,
+                )
+                padded_masks = torch.zeros(
+                    len(active_indices), max_neighbors, device=self.device
+                )
 
-            # 5. 记录数据
-            all_log_probs = action_dist.log_prob(actions_to_take)
-            all_entropies = action_dist.entropy()
-
-            for i, (reward, done, info) in enumerate(step_results):
-                if final_actions[i] is None:
-                    continue
-                batch_log_probs[i].append(all_log_probs[i : i + 1])
-                batch_values[i].append(state_values[i])
-                batch_rewards[i].append(reward)
-                batch_entropies[i].append(all_entropies[i])
-                if info.get("status") == "success":
-                    batch_success[i] = True
-                states[i] = batch_states[i].current_node
-
-        # 6. 计算 Batch Loss
-        total_loss = None
-        valid_episodes = 0
-        for i in range(batch_size):
-            if not batch_rewards[i]:
-                continue
-            _, _, _, loss = self._compute_loss(
-                batch_rewards[i],
-                batch_values[i],
-                batch_log_probs[i],
-                batch_entropies[i],
-            )
-            if total_loss is None:
-                total_loss = loss
+                for k, (n_embs, n_mask) in enumerate(
+                    zip(all_neighbor_embs, all_neighbor_masks)
+                ):
+                    if n_embs is not None:
+                        num_n = n_embs.size(0)
+                        padded_embs[k, :num_n, :] = n_embs
+                        padded_masks[k, :num_n] = n_mask
             else:
-                total_loss = total_loss + loss
+                padded_embs = None
+                padded_masks = None
+
+            # 神经网络前向推断
+            action_dist, state_values, next_memories = self.policy_net(
+                curr_embs, tgt_embs, padded_embs, curr_memories, padded_masks
+            )
+
+            # 保存新 memory
+            batch_memory[active_indices] = next_memories
+
+            # 采样与交互
+            actions_to_env = [None] * batch_size
+            step_rewards = [0.0] * batch_size
+            step_dones = [True] * batch_size
+
+            if action_dist is not None:
+                sampled_action_indices = action_dist.sample()
+                log_probs = action_dist.log_prob(sampled_action_indices)
+                entropies = action_dist.entropy()
+
+                for k, global_idx in enumerate(active_indices):
+                    a_tensor = all_action_tensors[k]
+                    if a_tensor is not None and len(a_tensor) > 0:
+                        chosen_action_idx = sampled_action_indices[k].item()
+                        # 越界保护 (mask 机制可能仍采样到 pad 位置的极小概率)
+                        if chosen_action_idx >= len(a_tensor):
+                            chosen_action_idx = 0
+                            
+                        real_action = a_tensor[chosen_action_idx].item()
+                        actions_to_env[global_idx] = real_action
+                        
+                        log_probs_list[global_idx].append(log_probs[k])
+                        values_list[global_idx].append(state_values[k].squeeze(-1))
+                        entropies_list[global_idx].append(entropies[k])
+                    else:
+                        active_mask[global_idx] = False
+            else:
+                for k, global_idx in enumerate(active_indices):
+                    active_mask[global_idx] = False
+
+            # Env Batch Step
+            # 重新计算一次势能（向量化）以备环境需要，必须是对整个 batch 计算
+            all_curr_nodes = [s.current_node for s in batch_states]
+            all_tgt_nodes = [s.target_node for s in batch_states]
+            all_curr_embs = self.node_embeddings[all_curr_nodes]
+            all_tgt_embs = self.node_embeddings[all_tgt_nodes]
+            all_pots = torch.cosine_similarity(all_curr_embs, all_tgt_embs, eps=1e-8).cpu().numpy()
+            step_results = self.env.step_batch(batch_states, actions_to_env, all_pots)
+
+            for i, (rew, done, info) in enumerate(step_results):
+                if active_mask[i]:
+                    rewards_list[i].append(rew)
+                    if done:
+                        active_mask[i] = False
+
+            step_idx += 1
+
+        # 计算总损失
+        total_loss = torch.tensor(0.0, device=self.device)
+        total_reward = 0.0
+        success_count = 0
+        valid_episodes = 0
+
+        for i in range(batch_size):
+            rewards = rewards_list[i]
+            if not rewards:
+                continue
+
             valid_episodes += 1
+            total_reward += sum(rewards)
+            if batch_states[i].done and batch_states[i].current_node == batch_states[i].target_node:
+                success_count += 1
 
-        success_rate = sum(batch_success) / max(1, batch_size)
+            R = 0
+            returns = []
+            for r in reversed(rewards):
+                R = r + self.gamma * R
+                returns.insert(0, R)
+                
+            returns_t = torch.tensor(returns, dtype=torch.float32, device=self.device)
 
-        final_loss = (
-            total_loss / max(1, valid_episodes) if total_loss is not None else None
-        )
+            # 标准化 returns 增加训练稳定性
+            if len(returns_t) > 1:
+                returns_t = (returns_t - returns_t.mean()) / (returns_t.std() + 1e-8)
 
-        return (
-            sum([sum(r) for r in batch_rewards]) / batch_size,
-            success_rate,
-            final_loss,
-        )
+            policy_loss = 0.0
+            value_loss = 0.0
+            entropy_loss = 0.0
 
-    def train(
-        self,
-        training_pairs,
-        num_episodes,
-        batch_size=64,
-        print_every=100,
-        save_every=500,
-        model_save_dir="./checkpoints/",
-    ):
-        """
-        高性能训练主循环 (兼容旧接口 V2.8)
-        """
-        total_rewards, total_srs = [], []
-        num_batches = max(1, num_episodes // batch_size)
+            for j in range(len(returns_t)):
+                log_prob = log_probs_list[i][j]
+                val = values_list[i][j]
+                entropy = entropies_list[i][j]
+                ret = returns_t[j]
 
-        logging.info(
-            f"Starting Training: {num_episodes} Episodes | Batch Size: {batch_size} | Updates: {num_batches}"
-        )
+                advantage = ret - val.item()
+                policy_loss -= log_prob * advantage
+                value_loss += F.smooth_l1_loss(val, torch.tensor(ret, device=self.device))
+                entropy_loss -= entropy
 
-        for b in range(num_batches):
-            # 随机采样一个 batch 的对
-            batch_idx = np.random.choice(len(training_pairs), batch_size)
-            batch_data = [training_pairs[i] for i in batch_idx]
+            total_loss += policy_loss + 0.5 * value_loss + self.entropy_coef * entropy_loss
 
-            # 内部调用已优化的 train_batch
-            avg_reward, sr, loss = self.train_batch(batch_data)
+        if valid_episodes > 0:
+            avg_reward = total_reward / valid_episodes
+            success_rate = success_count / valid_episodes
+            total_loss = total_loss / valid_episodes
+        else:
+            avg_reward = 0.0
+            success_rate = 0.0
+            total_loss = None
 
-            # 更新优化器
-            if loss is not None and isinstance(loss, torch.Tensor):
-                self.optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-                self.optimizer.step()
-
-            total_rewards.append(avg_reward)
-            total_srs.append(sr)
-
-            # print_every 是 episode 数，换算成 batch 数作为触发频率和统计窗口
-            batches_per_print = max(1, print_every // batch_size)
-            if (b + 1) % batches_per_print == 0:
-                avg_r = np.mean(total_rewards[-batches_per_print:])
-                avg_sr = np.mean(total_srs[-batches_per_print:])
-                logging.info(
-                    f"Batch {b + 1}/{num_batches} | Avg Reward (Last {print_every} Ep): {avg_r:.2f} | Avg SR: {avg_sr:.2%}"
-                )
+        return avg_reward, success_rate, total_loss
