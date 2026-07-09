@@ -1,0 +1,3302 @@
+[
+  {
+    "id": "scenario_000",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.4,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.79,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_001",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.7,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.85,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_002",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.9,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.51,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_003",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.7,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.76,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_004",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.2,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.74,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_005",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.6,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.95,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_006",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.3,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.15,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_007",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 23.7,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.93,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_008",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 2.7,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.17,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_009",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.1,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.62,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_010",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.7,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.64,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_011",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.5,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.26,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_012",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 19.7,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.8,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_013",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.9,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.9,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_014",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.4,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.3,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_015",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 5.7,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.46,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_016",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 3.7,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.15,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_017",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.9,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.82,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_018",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.5,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.25,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_019",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.6,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.94,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_020",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 8.8,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.38,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_021",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 5.1,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.77,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_022",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.1,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.76,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_023",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.5,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.84,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_024",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 17.8,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.68,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_025",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.1,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.16,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_026",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 5.3,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.76,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_027",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 13.5,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.33,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_028",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 23.9,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.2,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_029",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.0,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.48,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_030",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.6,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.38,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_031",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 2.6,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.12,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_032",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.5,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.31,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_033",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.5,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.66,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_034",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 3.1,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.3,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_035",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 13.7,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.89,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_036",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.7,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.97,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_037",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.2,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.61,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_038",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.3,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.97,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_039",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 10.4,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.55,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_040",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 10.7,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.58,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_041",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 8.4,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.45,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_042",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 3.0,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.69,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_043",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 18.6,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.85,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_044",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 3.5,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.28,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_045",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.3,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.69,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 5,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_046",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 17.2,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.89,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_047",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.1,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.82,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_048",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.6,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.4,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_049",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.5,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.95,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_050",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 3.8,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.44,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_051",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 23.5,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.8,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_052",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 5.5,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.36,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_053",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.3,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.21,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_054",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.1,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.52,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_055",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.5,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.98,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_056",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 13.5,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.73,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_057",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.0,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.33,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_058",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.4,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.62,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_059",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.1,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.42,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_060",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.9,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.86,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_061",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.2,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.34,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_062",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.6,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.93,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_063",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 5.4,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.27,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_064",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.1,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.92,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_065",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 2.2,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.67,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_066",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.8,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.5,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_067",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 18.3,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.51,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_068",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 21.4,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.14,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_069",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.0,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.95,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_070",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.4,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.32,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_071",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.9,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.49,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_072",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.6,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.77,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_073",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.2,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.92,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_074",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 13.9,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.24,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_075",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.0,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.55,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_076",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.4,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.57,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_077",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.6,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.62,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_078",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.1,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.85,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_079",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.5,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.58,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_080",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.7,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.74,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 5,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_081",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 21.6,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.82,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 5,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_082",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 8.1,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.26,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_083",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 23.1,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.21,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_084",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.8,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.39,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_085",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 21.6,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.36,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_086",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 18.8,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.44,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_087",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 10.8,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.57,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_088",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 17.3,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.77,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_089",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 19.2,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.16,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_090",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.3,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.63,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_091",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.4,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.9,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_092",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 23.7,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.11,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_093",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.0,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.83,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_094",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 21.4,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.77,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_095",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.2,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.54,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_096",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.9,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.77,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_097",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 2.9,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.84,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_098",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 16.7,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.41,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_099",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.7,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.22,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_100",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.8,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.47,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_101",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.3,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.44,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_102",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 17.2,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.81,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_103",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.7,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.66,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_104",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.2,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.21,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_105",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.2,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.11,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_106",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.3,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.54,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_107",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.7,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.17,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_108",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.1,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.4,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_109",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 18.5,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.82,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_110",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.1,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.32,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_111",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.8,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.15,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_112",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 10.3,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.38,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_113",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 17.4,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.24,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_114",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.7,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.58,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_115",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.9,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.15,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_116",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.1,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.6,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_117",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 24.0,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.78,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_118",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.8,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.14,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_119",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.7,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.75,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_120",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.5,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.86,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_121",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 10.2,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.51,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_122",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 9.1,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.2,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_123",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 11.7,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.98,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_124",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.3,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.74,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_125",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 2.3,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.89,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_126",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.9,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.32,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_127",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.9,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.14,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_128",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.1,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.86,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_129",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 12.4,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.6,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_130",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.7,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.71,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_131",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 13.8,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.29,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_132",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.1,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.18,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_133",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.1,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.45,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_134",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 3.6,
+        "disconn_count": 3
+      },
+      "env_info": {
+        "battery_level": 0.91,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_135",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.6,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.55,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_136",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 7.7,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.74,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_137",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 4.7,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.76,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_138",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 6.4,
+        "disconn_count": 6
+      },
+      "env_info": {
+        "battery_level": 0.66,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_139",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 14.1,
+        "disconn_count": 5
+      },
+      "env_info": {
+        "battery_level": 0.99,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_140",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 22.5,
+        "disconn_count": 10
+      },
+      "env_info": {
+        "battery_level": 0.7,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_141",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 18.5,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.34,
+        "wind_condition": "calm"
+      },
+      "target_info": {
+        "type": "routine_patrol",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_142",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 8.3,
+        "disconn_count": 8
+      },
+      "env_info": {
+        "battery_level": 0.35,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 1800
+      }
+    },
+    "ground_truth": {
+      "urgency": 5,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_143",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 19.7,
+        "disconn_count": 2
+      },
+      "env_info": {
+        "battery_level": 0.13,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_144",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 18.1,
+        "disconn_count": 9
+      },
+      "env_info": {
+        "battery_level": 0.61,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 2,
+      "level": "Level_1"
+    }
+  },
+  {
+    "id": "scenario_145",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 5.6,
+        "disconn_count": 0
+      },
+      "env_info": {
+        "battery_level": 0.44,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "critical_rescue",
+        "T_gold_seconds": 3600
+      }
+    },
+    "ground_truth": {
+      "urgency": 4,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_146",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 2.2,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.91,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 7200
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  },
+  {
+    "id": "scenario_147",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.0,
+        "disconn_count": 1
+      },
+      "env_info": {
+        "battery_level": 0.89,
+        "wind_condition": "strong"
+      },
+      "target_info": {
+        "type": "material_delivery",
+        "T_gold_seconds": 86400
+      }
+    },
+    "ground_truth": {
+      "urgency": 3,
+      "feasibility": 3,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_148",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 20.1,
+        "disconn_count": 4
+      },
+      "env_info": {
+        "battery_level": 0.55,
+        "wind_condition": "breeze"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 2,
+      "level": "Level_2"
+    }
+  },
+  {
+    "id": "scenario_149",
+    "input": {
+      "graph_stats": {
+        "avg_snr": 15.7,
+        "disconn_count": 7
+      },
+      "env_info": {
+        "battery_level": 0.14,
+        "wind_condition": "heavy"
+      },
+      "target_info": {
+        "type": "recon",
+        "T_gold_seconds": 600
+      }
+    },
+    "ground_truth": {
+      "urgency": 2,
+      "feasibility": 1,
+      "level": "Level_3"
+    }
+  }
+]
