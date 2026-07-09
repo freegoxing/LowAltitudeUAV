@@ -115,16 +115,12 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
 
     # (5) 任务机连地面救援人员 (UAV-M <-> GND-P) — 空地链路
     for gnd_p in node_ids_by_type["GND-P"]:
-        for uav_m in random.sample(
-            node_ids_by_type["UAV-M"], random.choice([1, 2])
-        ):
+        for uav_m in random.sample(node_ids_by_type["UAV-M"], random.choice([1, 2])):
             add_edge(uav_m, gnd_p, "Link_A2G", snr_range=(5, 15), bw_range=(5, 20))
 
     # (6) 侦察无人机连中继 (UAV-S <-> UAV-R) — 空空链路
     for uav_s in node_ids_by_type["UAV-S"]:
-        for uav_r in random.sample(
-            node_ids_by_type["UAV-R"], random.choice([1, 2])
-        ):
+        for uav_r in random.sample(node_ids_by_type["UAV-R"], random.choice([1, 2])):
             add_edge(uav_s, uav_r, "Link_A2A", snr_range=(8, 18), bw_range=(10, 30))
 
     # (7) 额外的 DISCONN 边：随机选取一些节点对，模拟断连预警
@@ -154,9 +150,7 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
         up_vals = node_snr_up[nid]
         dn_vals = node_snr_dn[nid]
         node["snr_uplink"] = round(sum(up_vals) / len(up_vals), 1) if up_vals else 0.0
-        node["snr_downlink"] = (
-            round(sum(dn_vals) / len(dn_vals), 1) if dn_vals else 0.0
-        )
+        node["snr_downlink"] = round(sum(dn_vals) / len(dn_vals), 1) if dn_vals else 0.0
         node["connected_links_count"] = node_link_count[nid]
 
     # --- 4. 组装并输出 ---

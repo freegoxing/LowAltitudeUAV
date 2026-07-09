@@ -99,7 +99,9 @@ def load_uav_network_graph(file_path: str) -> KnowledgeGraph:
     node_types_found = {n.get("type") for n in nodes}
     invalid_types = node_types_found - VALID_NODE_TYPES
     if invalid_types:
-        print(f"  ⚠ 警告: 发现未知节点类型 {invalid_types}，有效类型为 {VALID_NODE_TYPES}")
+        print(
+            f"  ⚠ 警告: 发现未知节点类型 {invalid_types}，有效类型为 {VALID_NODE_TYPES}"
+        )
 
     # 边关系类型校验
     edge_relations_found = {e.get("relation") for e in edges}

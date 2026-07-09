@@ -75,6 +75,7 @@ def calculate_pagerank(data: Data) -> dict[int, float]:
 
 import json
 
+
 def save_mappings(entity_map, relation_map, entity_map_path, relation_map_path):
     """保存节点和关系映射"""
     os.makedirs(os.path.dirname(entity_map_path), exist_ok=True)
@@ -163,8 +164,8 @@ def process_uav_graph(
     # 建立边和 SNR/弱链路特征
     edge_index_list, edge_relations = [], []
     snr_map = {}  # (src_id, tgt_id) -> snr_value
-    weak_link_set = set() # (src_id, tgt_id)
-    
+    weak_link_set = set()  # (src_id, tgt_id)
+
     # 记录特殊关系ID
     disconn_rel_id = relation_map.get("DISCONN", -1)
 
@@ -178,27 +179,27 @@ def process_uav_graph(
 
         if src_new is not None and tgt_new is not None and rel_name in relation_map:
             edge_index_list.append([src_new, tgt_new])
-            
+
             rel_id = relation_map[rel_name]
             edge_relations.append(rel_id)
-            
+
             # 构建 SNR 特征
             snr_map[(src_new, tgt_new)] = snr_val
-            
+
             # 识别弱链路（根据关系类型或 SNR 值）
             if rel_id == disconn_rel_id or snr_val < snr_threshold:
                 weak_link_set.add((src_new, tgt_new))
 
     edge_index = torch.tensor(edge_index_list, dtype=torch.long).t().contiguous()
     edge_type = torch.tensor(edge_relations, dtype=torch.long)
-    
+
     # 计算全局图拓扑势能
     pagerank_values = calculate_pagerank(
         Data(edge_index=edge_index, num_nodes=num_nodes)
     )
-    
+
     data = Data(edge_index=edge_index, edge_type=edge_type, num_nodes=num_nodes)
-    
+
     return (
         data,
         node_map,

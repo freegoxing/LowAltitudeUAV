@@ -6,6 +6,7 @@ UAV 强化学习环境模块
 """
 
 from collections import defaultdict
+
 import numpy as np
 import torch
 from torch_geometric.data import Data
@@ -44,7 +45,9 @@ class UAVRLEnvironment:
         weak_link_set: set[tuple[int, int]],
         node_types: torch.Tensor | None = None,
         snr_threshold: float = 3.0,
-        reward_weights: list[float] = None, # Agent 2 下发的权重 [w_snr_gain, w_bottleneck, w_stability]
+        reward_weights: list[
+            float
+        ] = None,  # Agent 2 下发的权重 [w_snr_gain, w_bottleneck, w_stability]
     ):
         # 静态图资源 (不可变)
         self.data = data
@@ -57,14 +60,16 @@ class UAVRLEnvironment:
         self.max_path_length = max_path_length
         self.pagerank_values = pagerank_values
         self.node_types = node_types
-        
+
         # UAV 通信特有属性
         self.snr_map = snr_map
         self.weak_link_set = weak_link_set
         self.snr_threshold = snr_threshold
-        
+
         # 奖励参数 (默认权重，如果 Agent 2 没有下发的话)
-        self.reward_weights = reward_weights if reward_weights is not None else [1.0, 1.0, 1.0]
+        self.reward_weights = (
+            reward_weights if reward_weights is not None else [1.0, 1.0, 1.0]
+        )
 
         # 构建包含 SNR 信息的邻接表
         self.adjacency_list = self._build_adjacency_list()
@@ -122,9 +127,12 @@ class UAVRLEnvironment:
         for n, rel_id, snr in neighbors_with_info:
             if n in curr_state.visited:
                 continue
-            
+
             # Mask 掉 SNR 极低的不可用链路
-            if snr >= self.snr_threshold and (curr_state.current_node, n) not in self.weak_link_set:
+            if (
+                snr >= self.snr_threshold
+                and (curr_state.current_node, n) not in self.weak_link_set
+            ):
                 valid_actions.append(n)
 
         return valid_actions
@@ -140,23 +148,27 @@ class UAVRLEnvironment:
         核心奖励函数：基于 SNR 态势感知的资源路由评估
         """
         state.step_count += 1
-        
+
         # 提取动态奖励权重 W (来自 LLM Agent 2)
         w_snr_gain, w_bottleneck, w_stability = self.reward_weights
-        
+
         # 1. 计算 SNR 奖励特征
         # 记录路径新 SNR 并更新木桶短板 (bottleneck)
         state.snr_history.append(link_snr)
         new_min_snr = min(state.path_min_snr, link_snr)
-        snr_drop = state.path_min_snr - new_min_snr if state.path_min_snr != float("inf") else 0.0
+        snr_drop = (
+            state.path_min_snr - new_min_snr
+            if state.path_min_snr != float("inf")
+            else 0.0
+        )
         state.path_min_snr = new_min_snr
-        
+
         # R_snr_gain: 当前链路的绝对信噪比带来的正向激励 (归一化到约 0~2 的范围)
-        r_snr_gain = link_snr / 10.0 
-        
+        r_snr_gain = link_snr / 10.0
+
         # R_bottleneck: 惩罚使得整个路径短板下降的跳数
         r_bottleneck = -snr_drop
-        
+
         # R_stability: 惩罚 SNR 序列的剧烈波动 (方差)
         r_stability = 0.0
         if len(state.snr_history) > 1:
@@ -169,10 +181,11 @@ class UAVRLEnvironment:
 
         # 3. 总步进奖励融合
         reward = (
-            w_snr_gain * r_snr_gain +
-            w_bottleneck * r_bottleneck + 
-            w_stability * r_stability + 
-            r_potential - 0.5  # -0.5 是基础跳数惩罚
+            w_snr_gain * r_snr_gain
+            + w_bottleneck * r_bottleneck
+            + w_stability * r_stability
+            + r_potential
+            - 0.5  # -0.5 是基础跳数惩罚
         )
 
         # 4. 状态转移
@@ -185,26 +198,32 @@ class UAVRLEnvironment:
         info = {
             "link_snr": link_snr,
             "path_min_snr": state.path_min_snr,
-            "snr_variance": np.var(state.snr_history) if len(state.snr_history) > 1 else 0.0
+            "snr_variance": np.var(state.snr_history)
+            if len(state.snr_history) > 1
+            else 0.0,
         }
 
         if state.current_node == state.target_node:
             # 成功抵达目标节点，结算最终奖励
             # 基础成功奖励
             base_success_reward = 1000.0
-            
+
             # 木桶效应加成：如果整个端到端路由的最低 SNR 依然很高，给予极大奖励
-            bottleneck_bonus = base_success_reward * (max(0, state.path_min_snr - self.snr_threshold) / 10.0)
-            
+            bottleneck_bonus = base_success_reward * (
+                max(0, state.path_min_snr - self.snr_threshold) / 10.0
+            )
+
             # 效率加成：跳数越少越好
-            efficiency_bonus = base_success_reward * ((self.max_path_length - state.step_count) / self.max_path_length)
-            
+            efficiency_bonus = base_success_reward * (
+                (self.max_path_length - state.step_count) / self.max_path_length
+            )
+
             reward += base_success_reward + bottleneck_bonus + efficiency_bonus
             done = True
             info["status"] = "success"
 
         elif state.step_count >= self.max_path_length:
-            reward -= 50.0 # 超时重罚
+            reward -= 50.0  # 超时重罚
             done = True
             info["status"] = "timeout"
 

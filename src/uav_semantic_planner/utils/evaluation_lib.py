@@ -7,6 +7,7 @@
 
 import numpy as np
 import torch
+
 from uav_semantic_planner.envs.environment import UAVRLEnvironment
 
 
@@ -27,7 +28,7 @@ def evaluate_navigation_metrics(
         - avg_snr_variance: 成功路由链路的平均 SNR 波动率
     """
     model.eval()
-    
+
     total_samples = len(eval_pairs)
     if total_samples == 0:
         return {
@@ -45,7 +46,7 @@ def evaluate_navigation_metrics(
     with torch.no_grad():
         for start_node, target_node in eval_pairs:
             env.reset(start_node, target_node)
-            
+
             # RNN 初始化
             path_memory = torch.zeros(1, model.gru_hidden_dim, device=device)
             target_emb = node_embeddings[target_node].unsqueeze(0).to(device)
@@ -53,7 +54,7 @@ def evaluate_navigation_metrics(
             while not env.state.done:
                 curr_node = env.state.current_node
                 curr_emb = node_embeddings[curr_node].unsqueeze(0).to(device)
-                
+
                 valid_actions = env.get_valid_actions()
                 if not valid_actions:
                     break
@@ -70,7 +71,7 @@ def evaluate_navigation_metrics(
                     path_memory=path_memory,
                     neighbor_mask=neighbor_mask,
                 )
-                
+
                 if action_dist is None:
                     break
 
@@ -87,9 +88,13 @@ def evaluate_navigation_metrics(
             if env.state.current_node == target_node:
                 success_count += 1
                 path_lengths.append(env.state.step_count)
-                
+
                 # 记录核心 SNR 状态
-                bottleneck_snrs.append(env.state.path_min_snr if env.state.path_min_snr != float("inf") else 0.0)
+                bottleneck_snrs.append(
+                    env.state.path_min_snr
+                    if env.state.path_min_snr != float("inf")
+                    else 0.0
+                )
                 if len(env.state.snr_history) > 1:
                     snr_variances.append(float(np.var(env.state.snr_history)))
                 else:
@@ -98,7 +103,9 @@ def evaluate_navigation_metrics(
     # 汇总
     success_rate = success_count / total_samples
     avg_path_length = sum(path_lengths) / success_count if success_count > 0 else 0.0
-    avg_bottleneck_snr = sum(bottleneck_snrs) / success_count if success_count > 0 else 0.0
+    avg_bottleneck_snr = (
+        sum(bottleneck_snrs) / success_count if success_count > 0 else 0.0
+    )
     avg_snr_variance = sum(snr_variances) / success_count if success_count > 0 else 0.0
 
     return {
@@ -115,46 +122,46 @@ def sample_uav_communication_pairs(
 ) -> list[tuple[int, int]]:
     """
     在通信拓扑上随机游走以收集可行的端到端通信对（用于训练）。
-    
+
     使用图遍历来保证采样出的 (source, target) 在物理链路（受限于SNR）上至少有一条通路。
     """
     import random
-    
+
     pairs = set()
     all_nodes = list(range(env.num_nodes))
-    
+
     max_attempts = num_samples * 10
     attempts = 0
-    
+
     while len(pairs) < num_samples and attempts < max_attempts:
         attempts += 1
         start_node = random.choice(all_nodes)
-        
+
         # 使用 BFS 或随机游走寻找可行 target
         current = start_node
         visited = {current}
         path = [current]
-        
+
         # 随机游走 3 - max_path_length 步
         steps = random.randint(3, min(10, env.max_path_length))
-        
+
         for _ in range(steps):
             # 获取有效邻居 (必须考虑 SNR 阈值)
-            env.reset(current, -1) # target 设为假值
+            env.reset(current, -1)  # target 设为假值
             env.state.visited = visited.copy()
             neighbors = env.get_valid_actions()
-            
+
             if not neighbors:
                 break
-                
+
             next_node = random.choice(neighbors)
             visited.add(next_node)
             path.append(next_node)
             current = next_node
-            
+
         if len(path) > 1:
             target_node = path[-1]
             if start_node != target_node:
                 pairs.add((start_node, target_node))
-                
+
     return list(pairs)

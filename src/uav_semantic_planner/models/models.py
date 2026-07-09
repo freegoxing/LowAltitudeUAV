@@ -37,7 +37,7 @@ class UAVHGTEncoder(nn.Module):
         self.use_weak_link_injection = use_weak_link_injection
         self.use_layer_norm = use_layer_norm
         self.use_dropout = use_dropout
-        
+
         # 默认使用 UAV 领域的节点类型排序
         default_order = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P"]
         self.node_types_order = node_types_order or default_order

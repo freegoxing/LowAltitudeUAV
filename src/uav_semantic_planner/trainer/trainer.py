@@ -6,7 +6,6 @@ UAV RL 训练器模块
 """
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -60,7 +59,7 @@ class RLTrainer:
 
         self.policy_net.train()
         batch_states = self.env.reset_batch(batch_pairs, self.device)
-        
+
         # RNN 初始隐藏状态
         batch_memory = torch.zeros(
             batch_size, self.policy_net.gru_hidden_dim, device=self.device
@@ -151,10 +150,10 @@ class RLTrainer:
                         # 越界保护 (mask 机制可能仍采样到 pad 位置的极小概率)
                         if chosen_action_idx >= len(a_tensor):
                             chosen_action_idx = 0
-                            
+
                         real_action = a_tensor[chosen_action_idx].item()
                         actions_to_env[global_idx] = real_action
-                        
+
                         log_probs_list[global_idx].append(log_probs[k])
                         values_list[global_idx].append(state_values[k].squeeze(-1))
                         entropies_list[global_idx].append(entropies[k])
@@ -170,7 +169,11 @@ class RLTrainer:
             all_tgt_nodes = [s.target_node for s in batch_states]
             all_curr_embs = self.node_embeddings[all_curr_nodes]
             all_tgt_embs = self.node_embeddings[all_tgt_nodes]
-            all_pots = torch.cosine_similarity(all_curr_embs, all_tgt_embs, eps=1e-8).cpu().numpy()
+            all_pots = (
+                torch.cosine_similarity(all_curr_embs, all_tgt_embs, eps=1e-8)
+                .cpu()
+                .numpy()
+            )
             step_results = self.env.step_batch(batch_states, actions_to_env, all_pots)
 
             for i, (rew, done, info) in enumerate(step_results):
@@ -194,7 +197,10 @@ class RLTrainer:
 
             valid_episodes += 1
             total_reward += sum(rewards)
-            if batch_states[i].done and batch_states[i].current_node == batch_states[i].target_node:
+            if (
+                batch_states[i].done
+                and batch_states[i].current_node == batch_states[i].target_node
+            ):
                 success_count += 1
 
             R = 0
@@ -202,7 +208,7 @@ class RLTrainer:
             for r in reversed(rewards):
                 R = r + self.gamma * R
                 returns.insert(0, R)
-                
+
             returns_t = torch.tensor(returns, dtype=torch.float32, device=self.device)
 
             # 标准化 returns 增加训练稳定性
@@ -221,10 +227,14 @@ class RLTrainer:
 
                 advantage = ret - val.item()
                 policy_loss -= log_prob * advantage
-                value_loss += F.smooth_l1_loss(val, torch.tensor(ret, device=self.device))
+                value_loss += F.smooth_l1_loss(
+                    val, torch.tensor(ret, device=self.device)
+                )
                 entropy_loss -= entropy
 
-            total_loss += policy_loss + 0.5 * value_loss + self.entropy_coef * entropy_loss
+            total_loss += (
+                policy_loss + 0.5 * value_loss + self.entropy_coef * entropy_loss
+            )
 
         if valid_episodes > 0:
             avg_reward = total_reward / valid_episodes
