@@ -25,8 +25,7 @@ src_dir = os.path.join(project_root, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from uav_semantic_planner.envs.environment import UAVRLEnvironment
-from uav_semantic_planner.models.models import RLPolicyNet, UAVHGTEncoder
+from uav_semantic_planner.utils import UAVRoutingPlanner
 
 
 def draw_uav_network(
@@ -330,13 +329,12 @@ def main():
     )
     args = parser.parse_args()
 
-    device = torch.device("cpu")  # 可视化直接用 CPU 即可
-
+    # 1. 设置随机种子
     seed = args.seed
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    # 1. 加载原生 JSON 构建 NetworkX 拓扑
+    # 2. 加载原生 JSON 构建 NetworkX 拓扑
     json_full_path = os.path.join(project_root, args.json_path)
     with open(json_full_path, encoding="utf-8") as f:
         kg_data = json.load(f)
@@ -349,259 +347,51 @@ def main():
             e["source"], e["target"], relation=e["relation"], snr=e["snr"]
         )
 
-    # 2. 加载训练好的 RL 环境和图数据
-    graph_pt_path = os.path.join(project_root, args.graph_pt)
-    if not os.path.exists(graph_pt_path):
-        print(f"未找到预处理图数据: {graph_pt_path}")
-        return
-
-    checkpoint = torch.load(graph_pt_path, map_location=device, weights_only=False)
-    raw_id_map = checkpoint["raw_id_map"]  # name -> int
-    node_map = checkpoint["node_map"]  # int -> name
-
-    # --- 以下为极简版 RL 推理过程 ---
-    # 为了保证能跑通环境，我们需要重新提取 embeddings
-    from torch_geometric.data import Data
-
-    num_nodes_dict = checkpoint["num_nodes_dict"]
-    total_nodes = sum(num_nodes_dict.values())
-
-    src_list, dst_list, type_list = [], [], []
-    relation_map = checkpoint["relation_map"]
-    for (ut, rel_name, vt), e_idx in checkpoint["edge_index_dict"].items():
-        # e_idx 是局部索引，需要映射回全局索引
-        global_src = checkpoint["x_dict_ids"][ut][e_idx[0]]
-        global_dst = checkpoint["x_dict_ids"][vt][e_idx[1]]
-
-        src_list.append(global_src)
-        dst_list.append(global_dst)
-        type_list.append(torch.full((e_idx.size(1),), relation_map[rel_name]))
-
-    full_edge_index = torch.stack([torch.cat(src_list), torch.cat(dst_list)], dim=0)
-    full_edge_type = torch.cat(type_list)
-    data = Data(
-        edge_index=full_edge_index, edge_type=full_edge_type, num_nodes=total_nodes
-    )
-
-    encoder = UAVHGTEncoder(
-        num_nodes_dict=num_nodes_dict,
-        embedding_dim=128,
-        hidden_channels=128,
-        out_channels=128,
-        metadata=checkpoint["metadata"],
-    ).to(device)
-
-    # 随机初始化或者从模型里提取都行，这里为了直接展示寻路能力，我们用随机初始化的特征通过 HGT 提取
-    h_dict = encoder(
-        checkpoint["x_dict_ids"],
-        checkpoint["edge_index_dict"],
-        checkpoint.get("weak_link_index"),
-    )
-    node_embeddings = torch.zeros(total_nodes, 128, device=device)
-    for nt, h_tensor in h_dict.items():
-        node_embeddings[checkpoint["x_dict_ids"][nt]] = h_tensor
-
-    env = UAVRLEnvironment(
-        data=data,
-        node_map=node_map,
-        relation_map=relation_map,
-        node_embeddings=node_embeddings,
-        max_path_length=10,
-        pagerank_values=checkpoint["pagerank_values"],
-        snr_map=checkpoint["snr_map"],
-        weak_link_set=checkpoint["weak_link_set"],
-        node_types=checkpoint["node_types"],
-    )
-
+    # 3. 初始化路由规划器
     model_pt_path = os.path.join(project_root, args.model_pt)
-    policy = RLPolicyNet(embedding_dim=128, gru_hidden_dim=64).to(device)
-    if os.path.exists(model_pt_path):
-        policy.load_state_dict(
-            torch.load(model_pt_path, map_location=device, weights_only=True)
+    graph_pt_path = os.path.join(project_root, args.graph_pt)
+
+    try:
+        planner = UAVRoutingPlanner(
+            model_pt_path=model_pt_path,
+            graph_pt_path=graph_pt_path,
+            device="cpu"
         )
-    policy.eval()
-
-    # 3. 决定起止点
-    start_int, target_int = None, None
-
-    # 强制终点类为指挥中心
-    gnd_c_nodes = [k for k, v in node_map.items() if "GND-C" in v]
-    if not gnd_c_nodes:
-        print("❌ 错误: 图谱中没有找到指挥中心 (GND-C) 节点！")
+    except FileNotFoundError as e:
+        print(f"❌ 错误: {e}")
         return
 
-    # 如果用户通过命令行指定了具体的目标发现节点
-    if args.tgt_node:
-        if args.tgt_node not in raw_id_map:
-            print(f"❌ 错误: 节点 '{args.tgt_node}' 不在图谱中，请检查名称。")
-            return
-        start_int = raw_id_map[args.tgt_node]
+    # 4. 决定起止点
+    try:
+        start_node_name, target_node_name = planner.select_routing_endpoints(
+            nx_graph=nx_graph,
+            tgt_node=args.tgt_node,
+            auto_find=args.auto_find
+        )
+    except ValueError as e:
+        print(f"❌ 错误: {e}")
+        return
 
-        # 寻找一个可达的 GND-C
-        for t in gnd_c_nodes:
-            if nx.has_path(nx_graph, node_map[start_int], node_map[t]):
-                target_int = t
-                break
-
-        if target_int is None:
-            print(f"❌ 错误: 节点 '{args.tgt_node}' 无法连通到任何指挥中心 (GND-C)！")
-            return
-
-    elif args.auto_find:
-        print("--- 正在自动寻找从侦察节点或救援人员到指挥中心(GND-C)的可达路径 ---")
-        source_nodes = [k for k, v in node_map.items() if "UAV-S" in v or "GND-P" in v]
-
-        import random
-
-        random.shuffle(source_nodes)
-        random.shuffle(gnd_c_nodes)
-
-        found = False
-        for s in source_nodes:
-            for t in gnd_c_nodes:
-                if nx.has_path(nx_graph, node_map[s], node_map[t]):
-                    start_int, target_int = s, t
-                    found = True
-                    break
-            if found:
-                break
-
-    # 兜底逻辑
-    if start_int is None or target_int is None:
-        start_int = raw_id_map.get("UAV-S-1", 0)
-        target_int = raw_id_map.get("GND-C-1", 1)
-
-    start_node_name = node_map[start_int]
-    target_node_name = node_map[target_int]
-
-    # 4. 开始一次评估 (主用路由寻路)
+    # 5. 开始智能路由规划
     print(f"--- 启动智能路由推演: {start_node_name} -> {target_node_name} ---")
+    routing_result = planner.plan_routing(start_node_name, target_node_name)
 
-    def run_inference(masked_edges=None):
-        if masked_edges is None:
-            masked_edges = set()
-
-        env.reset(start_int, target_int)
-
-        # 维护一个探索栈，用于死胡同回溯 (Backtracking)
-        # stack element: (path_memory, current_node, visited_set, tried_actions_from_here)
-        path_memory = torch.zeros(1, 64, device=device)
-        stack = []
-        tried_actions = {start_int: set()}
-
-        target_emb = node_embeddings[target_int].unsqueeze(0)
-
-        while not env.state.done:
-            curr_node = env.state.current_node
-            curr_emb = node_embeddings[curr_node].unsqueeze(0)
-
-            valid_actions = env.get_valid_actions()
-            # 应用全局掩码
-            valid_actions = [
-                a for a in valid_actions if (curr_node, a) not in masked_edges
-            ]
-            # 应用本地已尝试的动作掩码 (防止死循环)
-            if curr_node not in tried_actions:
-                tried_actions[curr_node] = set()
-            valid_actions = [
-                a for a in valid_actions if a not in tried_actions[curr_node]
-            ]
-
-            if not valid_actions:
-                # 遭遇死胡同，尝试回溯
-                if len(stack) > 0:
-                    print(f"  [预警] {node_map[curr_node]} 遭遇死胡同，执行战术回溯...")
-                    prev_memory, prev_node, prev_visited = stack.pop()
-
-                    # 恢复环境状态
-                    env.state.current_node = prev_node
-                    env.state.visited = prev_visited.copy()
-                    env.state.path.pop()
-                    env.state.snr_history.pop()
-                    # 重新计算 min snr
-                    env.state.path_min_snr = (
-                        min(env.state.snr_history)
-                        if env.state.snr_history
-                        else float("inf")
-                    )
-
-                    path_memory = prev_memory
-                    continue
-                else:
-                    print("  [状态] 彻底遭遇网络死胡同 (无符合 SNR 阈值的下一跳)")
-                    break
-
-            neighbor_embs = node_embeddings[valid_actions].unsqueeze(0)
-            neighbor_mask = torch.ones(1, len(valid_actions), dtype=torch.float32)
-
-            with torch.no_grad():
-                action_dist, _, next_memory = policy(
-                    curr_emb, target_emb, neighbor_embs, path_memory, neighbor_mask
-                )
-
-            if action_dist is None:
-                break
-
-            best_action_idx = action_dist.logits.argmax(dim=-1).item()
-            chosen_action = valid_actions[best_action_idx]
-
-            # 记录这次选择，如果回溯回来就不再选它
-            tried_actions[curr_node].add(chosen_action)
-
-            # 保存当前状态到栈，以便需要时回溯
-            stack.append((path_memory.clone(), curr_node, env.state.visited.copy()))
-
-            env.step(chosen_action)
-            path_memory = next_memory
-            print(
-                f"  -> 路由跳跃至: {node_map[chosen_action]} (瓶颈 SNR: {env.state.path_min_snr}dB)"
-            )
-
-        return env.state.path, env.state.path_min_snr
-
-    print("\n[计算主用路径...]")
-    primary_path, primary_min_snr = run_inference()
-
-    # 5. 计算备用路由 (屏蔽主路由的关键边)
-    backup_path = []
-    backup_min_snr = 0.0
-    if len(primary_path) > 1:
-        print("\n[计算备用路径...]")
-        masked_edges = set()
-        # 屏蔽主路由的第一跳，迫使网络寻找完全不同的出口
-        masked_edges.add((primary_path[0], primary_path[1]))
-        backup_path, backup_min_snr = run_inference(masked_edges)
-
-    # 智能比对环节：强化学习有时候会有陷入局部最优的探索情况，
-    # 为了展示逻辑自洽，我们比较两条链路的质量，永远把高质量的链路作为“主路由”
-    if backup_path and len(backup_path) > 0:
-        # 评估指标：首先看瓶颈 SNR（越大越好），如果 SNR 差不多，看路径长度（越短越好）
-        # 这里给 SNR 加一点容差权重，假设相差不到 1dB 就算差不多
-        primary_score = primary_min_snr * 10 - len(primary_path)
-        backup_score = backup_min_snr * 10 - len(backup_path)
-
-        if backup_score > primary_score:
-            print(
-                "\n[智能调整] 发现备用路径质量优于原规划主路径，自动进行主备路由翻转换路！"
-            )
-            primary_path, backup_path = backup_path, primary_path
-            primary_min_snr, backup_min_snr = backup_min_snr, primary_min_snr
-
-    # 6. 提取路径并画图
-    final_path_raw = [node_map[n] for n in primary_path]
-    backup_path_raw = [node_map[n] for n in backup_path] if backup_path else []
+    primary_path = routing_result["primary_path"]
+    primary_min_snr = routing_result["primary_min_snr"]
+    backup_path = routing_result["backup_path"]
+    backup_min_snr = routing_result["backup_min_snr"]
 
     print(
-        f"\n✅ 最终主用路由 (瓶颈 SNR {primary_min_snr:.1f}dB): {' -> '.join(final_path_raw)}"
+        f"\n✅ 最终主用路由 (瓶颈 SNR {primary_min_snr:.1f}dB): {' -> '.join(primary_path)}"
     )
-    if backup_path_raw:
+    if backup_path:
         print(
-            f"✅ 最终备用路由 (瓶颈 SNR {backup_min_snr:.1f}dB): {' -> '.join(backup_path_raw)}"
+            f"✅ 最终备用路由 (瓶颈 SNR {backup_min_snr:.1f}dB): {' -> '.join(backup_path)}"
         )
 
     output_full_path = os.path.join(project_root, args.output_img)
     draw_uav_network(
-        nx_graph, final_path_raw, backup_path_raw, target_node_name, output_full_path
+        nx_graph, primary_path, backup_path, target_node_name, output_full_path
     )
 
 
