@@ -21,7 +21,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "cugraph-pyg-cu13>=0.0.0a0",
     "plotly>=6.5.2",
-    "skillopt[webui]",
+    "skillopt[qwen,webui]",
 ]
 
 [tool.uv]
