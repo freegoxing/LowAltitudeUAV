@@ -11,7 +11,11 @@ import os
 import random
 
 
-def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
+def generate_mock_uav_data(
+    output_file="data/mock_uav_network.json",
+    snr_offset: float = 0.0,
+    num_disconn_range: tuple[int, int] = (3, 6),
+):
     """
     生成一个用于 Demo 的轻量级低空无人机通信网络图谱。
 
@@ -59,7 +63,7 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
 
     def add_edge(src, tgt, relation, snr_range, bw_range):
         """添加双向通信链路"""
-        snr = round(random.uniform(*snr_range), 1)
+        snr = round(max(0.1, random.uniform(*snr_range) + snr_offset), 1)
         bw = round(random.uniform(*bw_range), 1)
 
         # 检查是否应标记为 DISCONN（SNR 极低时自动降级）
@@ -125,7 +129,7 @@ def generate_mock_uav_data(output_file="data/mock_uav_network.json"):
 
     # (7) 额外的 DISCONN 边：随机选取一些节点对，模拟断连预警
     all_node_ids = [n["id"] for n in nodes]
-    num_disconn = random.randint(3, 6)
+    num_disconn = random.randint(*num_disconn_range)
     for _ in range(num_disconn):
         src = random.choice(all_node_ids)
         tgt = random.choice(all_node_ids)

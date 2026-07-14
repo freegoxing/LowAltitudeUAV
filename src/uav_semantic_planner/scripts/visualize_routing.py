@@ -1,48 +1,146 @@
 """
-UAV 语义通信网络资源路由可视化脚本
+UAV 语义通信任务子图可视化脚本
 
-基于训练好的强化学习 (RL) 策略，在通信网络拓扑中进行寻路，
-并将通信资源的流向（网络拓扑、SNR态势、最终决策路由）进行可视化图表输出。
+基于训练好的强化学习 (RL) 策略，在通信网络拓扑中规划任务通信子图，
+并将关键节点、主备路径、资源约束与自愈信息进行可视化输出。
 """
+
+from __future__ import annotations
 
 import argparse
 import json
 import os
 import sys
+from collections import defaultdict
 
 import matplotlib
-import numpy as np
-
-matplotlib.use("Agg")  # 强制使用无头模式
-import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 import torch
+from matplotlib import font_manager
 
-# 自动处理路径
+matplotlib.use("Agg")
+import matplotlib.lines as mlines
+import matplotlib.pyplot as plt
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
 src_dir = os.path.join(project_root, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from uav_semantic_planner.utils import UAVRoutingPlanner
+from uav_semantic_planner.utils import (
+    MissionCommunicationSpecification,
+    MissionFlowSpec,
+    UAVRoutingPlanner,
+)
 
 
-def draw_uav_network(
+def _configure_chinese_font() -> None:
+    """优先选择可用的中文字体，避免导出图片出现方块字。"""
+    preferred_fonts = [
+        "Noto Sans CJK SC",
+        "Microsoft YaHei",
+        "SimHei",
+        "WenQuanYi Zen Hei",
+        "Arial Unicode MS",
+    ]
+    available_fonts = {f.name for f in font_manager.fontManager.ttflist}
+    for font_name in preferred_fonts:
+        if font_name in available_fonts:
+            matplotlib.rcParams["font.sans-serif"] = [font_name]
+            break
+    matplotlib.rcParams["axes.unicode_minus"] = False
+
+
+_configure_chinese_font()
+
+
+def build_default_mission_spec(
+    source_node: str,
+    search_receiver: str,
+    medical_receiver: str,
+    command_receiver: str,
+) -> MissionCommunicationSpecification:
+    """生成一个与设计文档一致的默认火灾搜救 MCS 示例。"""
+    return MissionCommunicationSpecification(
+        mission_id="SAR-FIRE-001",
+        mission_type="TASK-SAR",
+        mission_priority=5,
+        key_nodes=[
+            source_node,
+            search_receiver,
+            medical_receiver,
+            command_receiver,
+        ],
+        mission_flows=[
+            MissionFlowSpec(
+                flow_id="F-1",
+                source=source_node,
+                receivers=[search_receiver],
+                purpose="搜救引导",
+                priority=5,
+                bandwidth_req="15 Mbps",
+                latency_req="120 ms",
+                reliability_req=0.99,
+                delivery_mode="anycast",
+                command_sync="immediate",
+            ),
+            MissionFlowSpec(
+                flow_id="F-2",
+                source=source_node,
+                receivers=[medical_receiver],
+                purpose="医疗协同",
+                priority=4,
+                bandwidth_req="8 Mbps",
+                latency_req="200 ms",
+                reliability_req=0.97,
+                delivery_mode="unicast",
+                command_sync="summary",
+            ),
+            MissionFlowSpec(
+                flow_id="F-3",
+                source=search_receiver,
+                receivers=[command_receiver],
+                purpose="态势同步",
+                priority=2,
+                bandwidth_req="2 Mbps",
+                latency_req="1 s",
+                reliability_req=0.9,
+                delivery_mode="unicast",
+                command_sync="summary",
+            ),
+        ],
+        resource_budget={
+            "mission_bandwidth_cap": "70%",
+            "relay_count_cap": 3,
+            "power_ceiling": "+3 dB",
+        },
+        backup_requirement={"priority_5": 2, "priority_4": 1},
+        healing_policy={
+            "switch_threshold_snr_db": 8,
+            "switch_delay": "<500 ms",
+            "recovery": "automatic",
+        },
+        command_receiver=command_receiver,
+    )
+
+
+def _format_budget_line(resource_budget: dict) -> str:
+    return ", ".join(f"{k}={v}" for k, v in resource_budget.items())
+
+
+def draw_task_communication_subgraph(
     nx_graph: nx.Graph,
-    path_nodes: list[str],
-    backup_path_nodes: list[str],
-    target_node_name: str,
+    planning_result: dict,
     output_path: str,
-    title: str = "UAV Semantic Communication Resource Routing",
-):
-    """使用 NetworkX 绘制层次化的 UAV 通信拓扑，并高亮资源流向路径"""
-    plt.figure(figsize=(16, 10))
+    title: str = "Task Communication Subgraph",
+) -> None:
+    """绘制任务通信子图、主备路径与任务约束摘要。"""
+    plt.figure(figsize=(18, 11))
 
-    # 1. 确定多层（层次化）布局
     layer_map = {"GND-C": 0, "BS": 1, "UAV-R": 2, "UAV-M": 3, "UAV-S": 4, "GND-P": 5}
-    layer_nodes = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
-
+    layer_nodes = defaultdict(list)
     for node, data in nx_graph.nodes(data=True):
         ntype = data.get("type", "GND-P")
         layer_idx = layer_map.get(ntype, 5)
@@ -52,8 +150,8 @@ def draw_uav_network(
     for idx in layer_nodes:
         layer_nodes[idx].sort()
 
-    pos = nx.multipartite_layout(nx_graph, subset_key=layer_nodes, align="horizontal")
-    # 2. 区分节点类型进行绘制
+    pos = nx.multipartite_layout(nx_graph, subset_key="layer", align="horizontal")
+
     type_colors = {
         "GND-C": "#FF6B6B",
         "BS": "#4ECDC4",
@@ -71,47 +169,39 @@ def draw_uav_network(
                 pos,
                 nodelist=nlist,
                 node_color=color,
-                node_size=800,
+                node_size=780,
                 edgecolors="black",
-                linewidths=1.5,
+                linewidths=1.2,
                 label=ntype,
             )
 
-    # 特别高亮起点和终点 (Target)
-    if path_nodes:
-        start_node = path_nodes[0]
-        # 起点 (绿色边框加粗)
-        nx.draw_networkx_nodes(
-            nx_graph,
-            pos,
-            nodelist=[start_node],
-            node_size=1200,
-            edgecolors="#32CD32",
-            linewidths=4.0,
-        )
+    mission = planning_result["mission"]
+    key_nodes = set(mission.get("key_nodes", []))
+    command_receiver = mission.get("command_receiver")
 
-    # 目标点 (紫色边框加粗，并且特别标注)
-    if nx_graph.has_node(target_node_name):
+    for node in key_nodes:
+        if nx_graph.has_node(node):
+            nx.draw_networkx_nodes(
+                nx_graph,
+                pos,
+                nodelist=[node],
+                node_size=1200,
+                edgecolors="#F5B700",
+                linewidths=3.5,
+                node_color="none",
+            )
+
+    if command_receiver and nx_graph.has_node(command_receiver):
         nx.draw_networkx_nodes(
             nx_graph,
             pos,
-            nodelist=[target_node_name],
-            node_size=1200,
+            nodelist=[command_receiver],
+            node_size=1350,
             edgecolors="#9932CC",
             linewidths=4.0,
-        )
-        # 为目标点画一个五角星标记
-        nx.draw_networkx_nodes(
-            nx_graph,
-            pos,
-            nodelist=[target_node_name],
-            node_shape="*",
-            node_size=2500,
-            edgecolors="#9932CC",
             node_color="none",
         )
 
-    # 3. 区分边类型进行绘制
     normal_edges = [
         (u, v)
         for u, v, d in nx_graph.edges(data=True)
@@ -127,9 +217,9 @@ def draw_uav_network(
         nx_graph,
         pos,
         edgelist=normal_edges,
-        edge_color="#B0B0B0",
+        edge_color="#C8C8C8",
         style="dashed",
-        alpha=0.5,
+        alpha=0.45,
     )
     nx.draw_networkx_edges(
         nx_graph,
@@ -141,56 +231,72 @@ def draw_uav_network(
         alpha=0.7,
     )
 
-    # 4. 高亮 RL 规划出的 备用 资源路由路径 (加粗橙色虚线箭头)
-    backup_path_edges = []
-    if backup_path_nodes and len(backup_path_nodes) > 1:
-        for i in range(len(backup_path_nodes) - 1):
-            backup_path_edges.append((backup_path_nodes[i], backup_path_nodes[i + 1]))
+    flow_palette = ["#FF3366", "#FF9900", "#6A5ACD", "#1E90FF", "#2E8B57"]
+    edge_labels: dict[tuple[str, str], str] = {}
+    legend_handles = []
 
-        nx.draw_networkx_edges(
-            nx_graph,
-            pos,
-            edgelist=backup_path_edges,
-            edge_color="#FF9900",
-            width=2.5,
-            style="dashed",
-            arrows=True,
-            arrowsize=20,
-            arrowstyle="-|>",
-            connectionstyle="arc3,rad=-0.15",  # 反向弯曲，避免重叠
+    for idx, flow_result in enumerate(planning_result["flow_results"]):
+        flow = flow_result["flow"]
+        color = flow_palette[idx % len(flow_palette)]
+        primary_path = flow_result["primary_path"]
+        backup_paths = flow_result["backup_paths"]
+
+        primary_edges = list(zip(primary_path[:-1], primary_path[1:]))
+        if primary_edges:
+            nx.draw_networkx_edges(
+                nx_graph,
+                pos,
+                edgelist=primary_edges,
+                edge_color=color,
+                width=3.5,
+                arrows=True,
+                arrowsize=22,
+                arrowstyle="-|>",
+                connectionstyle="arc3,rad=0.1",
+            )
+
+        for backup_idx, backup_path in enumerate(backup_paths):
+            backup_edges = list(zip(backup_path[:-1], backup_path[1:]))
+            if not backup_edges:
+                continue
+            nx.draw_networkx_edges(
+                nx_graph,
+                pos,
+                edgelist=backup_edges,
+                edge_color=color,
+                width=2.5,
+                style="dashed",
+                arrows=True,
+                arrowsize=18,
+                arrowstyle="-|>",
+                alpha=0.8,
+                connectionstyle=f"arc3,rad={-0.12 - 0.03 * backup_idx}",
+            )
+
+        for u, v in primary_edges:
+            if nx_graph.has_edge(u, v):
+                edge_labels[(u, v)] = f"{nx_graph[u][v].get('snr', 0.0)}dB"
+        for backup_path in backup_paths:
+            for u, v in zip(backup_path[:-1], backup_path[1:]):
+                if nx_graph.has_edge(u, v) and (u, v) not in edge_labels:
+                    edge_labels[(u, v)] = f"{nx_graph[u][v].get('snr', 0.0)}dB*"
+
+        flow_label = (
+            f"{flow['flow_id']} | {flow['purpose']} | "
+            f"recv: {flow_result['selected_receiver']} | "
+            f"P{flow['priority']}"
+        )
+        legend_handles.append(
+            mlines.Line2D(
+                [],
+                [],
+                color=color,
+                linewidth=3,
+                label=flow_label,
+            )
         )
 
-    # 5. 高亮 RL 规划出的 主用 资源路由路径 (加粗红色实线箭头)
-    path_edges = []
-    if path_nodes and len(path_nodes) > 1:
-        for i in range(len(path_nodes) - 1):
-            path_edges.append((path_nodes[i], path_nodes[i + 1]))
-
-        nx.draw_networkx_edges(
-            nx_graph,
-            pos,
-            edgelist=path_edges,
-            edge_color="#FF3366",
-            width=3.5,
-            arrows=True,
-            arrowsize=25,
-            arrowstyle="-|>",
-            connectionstyle="arc3,rad=0.1",
-        )
-
-    # 6. 绘制标签
     nx.draw_networkx_labels(nx_graph, pos, font_size=9, font_weight="bold")
-
-    edge_labels = {}
-    for u, v in path_edges:
-        if nx_graph.has_edge(u, v):
-            snr = nx_graph[u][v].get("snr", 0.0)
-            edge_labels[(u, v)] = f"{snr}dB"
-    for u, v in backup_path_edges:
-        if nx_graph.has_edge(u, v) and (u, v) not in edge_labels:
-            snr = nx_graph[u][v].get("snr", 0.0)
-            edge_labels[(u, v)] = f"{snr}dB (Backup)"
-
     nx.draw_networkx_edge_labels(
         nx_graph,
         pos,
@@ -201,45 +307,55 @@ def draw_uav_network(
         bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.7),
     )
 
-    # 7. 图例与标题
-    import matplotlib.lines as mlines
-
-    legend_handles = []
-    for ntype, color in type_colors.items():
-        handle = mlines.Line2D(
+    legend_handles.extend(
+        [
+            mlines.Line2D(
+                [],
+                [],
+                color="w",
+                marker="o",
+                markerfacecolor=color,
+                markeredgecolor="black",
+                markersize=10,
+                label=f"Node: {ntype}",
+            )
+            for ntype, color in type_colors.items()
+        ]
+    )
+    legend_handles.append(
+        mlines.Line2D(
             [],
             [],
             color="w",
             marker="o",
-            markerfacecolor=color,
-            markeredgecolor="black",
-            markersize=10,
-            label=f"Node: {ntype}",
+            markerfacecolor="none",
+            markeredgecolor="#F5B700",
+            markersize=12,
+            markeredgewidth=2,
+            label="Key Node",
         )
-        legend_handles.append(handle)
-
+    )
     legend_handles.append(
         mlines.Line2D(
             [],
             [],
             color="w",
-            marker="*",
+            marker="o",
             markerfacecolor="none",
             markeredgecolor="#9932CC",
-            markersize=15,
+            markersize=12,
             markeredgewidth=2,
-            label="Target Destination",
+            label="Command Receiver",
         )
     )
-
     legend_handles.append(
         mlines.Line2D(
             [],
             [],
-            color="#B0B0B0",
+            color="#C8C8C8",
             linestyle="dashed",
             linewidth=1.5,
-            label="Available Link (SNR >= threshold)",
+            label="Available Link",
         )
     )
     legend_handles.append(
@@ -249,27 +365,7 @@ def draw_uav_network(
             color="#FF9999",
             linestyle="dotted",
             linewidth=2.0,
-            label="DISCONN Warning (Weak/Broken)",
-        )
-    )
-    legend_handles.append(
-        mlines.Line2D(
-            [],
-            [],
-            color="#FF3366",
-            linestyle="-",
-            linewidth=3.5,
-            label="Primary Routing Path",
-        )
-    )
-    legend_handles.append(
-        mlines.Line2D(
-            [],
-            [],
-            color="#FF9900",
-            linestyle="dashed",
-            linewidth=2.5,
-            label="Backup Routing Path",
+            label="DISCONN Warning",
         )
     )
 
@@ -277,33 +373,49 @@ def draw_uav_network(
         handles=legend_handles,
         frameon=True,
         loc="upper right",
-        title="Network Elements Legend",
+        title="Task Communication Legend",
         fontsize=9,
     )
     plt.title(title, fontsize=16, fontweight="bold", pad=20)
 
-    info_text = f"Start Node: {path_nodes[0] if path_nodes else 'N/A'}\nTarget Node: {target_node_name}"
+    flow_summary = []
+    for flow_result in planning_result["flow_results"]:
+        flow = flow_result["flow"]
+        flow_summary.append(
+            f"{flow['flow_id']}: {flow_result['primary_path'][0]} -> "
+            f"{flow_result['selected_receiver']} | "
+            f"主路瓶颈 {flow_result['primary_min_snr']:.1f}dB | "
+            f"备份 {len(flow_result['backup_paths'])}"
+        )
+
+    info_text = (
+        f"Mission: {mission['mission_id']} ({mission['mission_type']})\n"
+        f"Priority: {mission['mission_priority']}\n"
+        f"Key Nodes: {', '.join(mission.get('key_nodes', []))}\n"
+        f"Budget: {_format_budget_line(mission.get('resource_budget', {}))}\n"
+        f"Healing: {_format_budget_line(mission.get('healing_policy', {}))}\n"
+        f"{' | '.join(flow_summary)}"
+    )
     plt.text(
         0.02,
         0.98,
         info_text,
         transform=plt.gca().transAxes,
-        fontsize=12,
+        fontsize=10,
         verticalalignment="top",
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.82),
     )
 
     plt.axis("off")
     plt.tight_layout()
-
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
-    print(f"✅ 路由可视化图像已生成: {output_path}")
+    print(f"✅ 任务通信子图已生成: {output_path}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Visualize UAV RL Routing")
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Visualize UAV task communication subgraph")
     parser.add_argument("--json_path", type=str, default="data/mock_uav_network.json")
     parser.add_argument(
         "--graph_pt", type=str, default="checkpoints/UAV_Demo/uav_hetero_graph.pt"
@@ -312,29 +424,18 @@ def main():
         "--model_pt", type=str, default="checkpoints/UAV_Demo/uav_policy_final.pt"
     )
     parser.add_argument(
-        "--output_img", type=str, default="visualizations/routing_flow.png"
+        "--output_img", type=str, default="visualizations/task_communication_subgraph.png"
     )
-    # 增加指定起点（即发现目标的节点）的参数，终点强制为 GND-C
-    parser.add_argument(
-        "--tgt_node",
-        type=str,
-        default="",
-        help="指定发现目标的节点名称(如 UAV-S-1)，数据将自动回传至指挥中心",
-    )
-    # 全局随机种子
+    parser.add_argument("--source_node", type=str, default="UAV-S-1")
+    parser.add_argument("--search_receiver", type=str, default="GND-P-1")
+    parser.add_argument("--medical_receiver", type=str, default="GND-P-2")
+    parser.add_argument("--command_receiver", type=str, default="GND-C-1")
     parser.add_argument("--seed", type=int, default=4321, help="全局随机种子")
-    # 自动寻路开关 (如果指定了起点终点，请将此参数设为 False)
-    parser.add_argument(
-        "--auto_find", action="store_true", help="是否在未指定节点时自动寻找连通节点"
-    )
     args = parser.parse_args()
 
-    # 1. 设置随机种子
-    seed = args.seed
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
-    # 2. 加载原生 JSON 构建 NetworkX 拓扑
     json_full_path = os.path.join(project_root, args.json_path)
     with open(json_full_path, encoding="utf-8") as f:
         kg_data = json.load(f)
@@ -347,7 +448,6 @@ def main():
             e["source"], e["target"], relation=e["relation"], snr=e["snr"]
         )
 
-    # 3. 初始化路由规划器
     model_pt_path = os.path.join(project_root, args.model_pt)
     graph_pt_path = os.path.join(project_root, args.graph_pt)
 
@@ -355,43 +455,25 @@ def main():
         planner = UAVRoutingPlanner(
             model_pt_path=model_pt_path,
             graph_pt_path=graph_pt_path,
-            device="cpu"
+            device="cpu",
         )
-    except FileNotFoundError as e:
-        print(f"❌ 错误: {e}")
+    except FileNotFoundError as exc:
+        print(f"❌ 错误: {exc}")
         return
 
-    # 4. 决定起止点
-    try:
-        start_node_name, target_node_name = planner.select_routing_endpoints(
-            nx_graph=nx_graph,
-            tgt_node=args.tgt_node,
-            auto_find=args.auto_find
-        )
-    except ValueError as e:
-        print(f"❌ 错误: {e}")
-        return
-
-    # 5. 开始智能路由规划
-    print(f"--- 启动智能路由推演: {start_node_name} -> {target_node_name} ---")
-    routing_result = planner.plan_routing(start_node_name, target_node_name)
-
-    primary_path = routing_result["primary_path"]
-    primary_min_snr = routing_result["primary_min_snr"]
-    backup_path = routing_result["backup_path"]
-    backup_min_snr = routing_result["backup_min_snr"]
-
-    print(
-        f"\n✅ 最终主用路由 (瓶颈 SNR {primary_min_snr:.1f}dB): {' -> '.join(primary_path)}"
+    mission_spec = build_default_mission_spec(
+        source_node=args.source_node,
+        search_receiver=args.search_receiver,
+        medical_receiver=args.medical_receiver,
+        command_receiver=args.command_receiver,
     )
-    if backup_path:
-        print(
-            f"✅ 最终备用路由 (瓶颈 SNR {backup_min_snr:.1f}dB): {' -> '.join(backup_path)}"
-        )
 
-    output_full_path = os.path.join(project_root, args.output_img)
-    draw_uav_network(
-        nx_graph, primary_path, backup_path, target_node_name, output_full_path
+    print(f"--- 启动任务通信子图推演: {mission_spec.mission_id} ---")
+    planning_result = planner.plan_mission_communication(mission_spec, nx_graph)
+    draw_task_communication_subgraph(
+        nx_graph,
+        planning_result,
+        os.path.join(project_root, args.output_img),
     )
 
 

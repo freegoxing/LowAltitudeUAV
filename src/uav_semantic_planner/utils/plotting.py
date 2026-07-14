@@ -9,6 +9,26 @@ import matplotlib
 
 matplotlib.use("Agg")  # 强制使用非交互式后端，避免 UserWarning
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
+
+
+def _configure_chinese_font() -> None:
+    preferred_fonts = [
+        "Noto Sans CJK SC",
+        "Microsoft YaHei",
+        "SimHei",
+        "WenQuanYi Zen Hei",
+        "Arial Unicode MS",
+    ]
+    available_fonts = {f.name for f in font_manager.fontManager.ttflist}
+    for font_name in preferred_fonts:
+        if font_name in available_fonts:
+            plt.rcParams["font.sans-serif"] = [font_name]
+            break
+    plt.rcParams["axes.unicode_minus"] = False
+
+
+_configure_chinese_font()
 
 
 def plot_cumulative_rewards(
