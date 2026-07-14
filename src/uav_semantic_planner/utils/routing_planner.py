@@ -208,15 +208,15 @@ class UAVRoutingPlanner:
             if nx.has_path(nx_graph, source_name, receiver):
                 return receiver
 
-        if command_receiver and nx_graph.has_node(command_receiver):
-            if command_sync in {"immediate", "on_escalation", "summary"}:
-                if nx.has_path(nx_graph, source_name, command_receiver):
-                    return command_receiver
-
-        gnd_c_nodes = [node for node in nx_graph.nodes if "GND-C" in node]
-        for node in gnd_c_nodes:
-            if nx.has_path(nx_graph, source_name, node):
-                return node
+        # 指挥车不是默认汇点。仅在 MCS 明确要求立即同步或升级时，
+        # 才允许它作为没有可达行动接收者时的兜底终点。
+        if (
+            command_sync in {"immediate", "on_escalation"}
+            and command_receiver
+            and nx_graph.has_node(command_receiver)
+            and nx.has_path(nx_graph, source_name, command_receiver)
+        ):
+            return command_receiver
 
         raise ValueError(f"源节点 '{source_name}' 无法连通到任何合格接收者。")
 
@@ -310,6 +310,17 @@ class UAVRoutingPlanner:
 
         print(f"\n[计算主用路径...] ({start_node_name} -> {target_node_name})")
         primary_path, primary_min_snr = self.run_inference(start_int, target_int)
+        if not primary_path or primary_path[-1] != target_int:
+            print("  [状态] 未能抵达目标节点，不将半路径作为有效主路径。")
+            return {
+                "status": "unreachable",
+                "primary_path": [],
+                "primary_min_snr": 0.0,
+                "backup_path": [],
+                "backup_min_snr": 0.0,
+                "backup_paths": [],
+                "backup_min_snrs": [],
+            }
 
         backup_paths: list[list[int]] = []
         backup_min_snrs: list[float] = []
@@ -325,7 +336,11 @@ class UAVRoutingPlanner:
                 start_int, target_int, masked_edges
             )
 
-            if len(backup_path) <= 1 or backup_path == primary_path:
+            if (
+                len(backup_path) <= 1
+                or backup_path[-1] != target_int
+                or backup_path == primary_path
+            ):
                 break
 
             backup_paths.append(backup_path)
@@ -349,6 +364,7 @@ class UAVRoutingPlanner:
         ]
 
         return {
+            "status": "planned",
             "primary_path": primary_path_names,
             "primary_min_snr": primary_min_snr,
             "backup_path": backup_path_names[0] if backup_path_names else [],
@@ -371,13 +387,30 @@ class UAVRoutingPlanner:
         relay_nodes: set[str] = set()
 
         for flow in mission.mission_flows:
-            selected_receiver = self._select_flow_receiver(
-                nx_graph=nx_graph,
-                source_name=flow.source,
-                candidates=flow.receivers,
-                command_receiver=mission.command_receiver,
-                command_sync=flow.command_sync,
-            )
+            try:
+                selected_receiver = self._select_flow_receiver(
+                    nx_graph=nx_graph,
+                    source_name=flow.source,
+                    candidates=flow.receivers,
+                    command_receiver=mission.command_receiver,
+                    command_sync=flow.command_sync,
+                )
+            except ValueError as exc:
+                flow_results.append(
+                    {
+                        "flow": flow.to_dict(),
+                        "status": "unreachable",
+                        "selected_receiver": "",
+                        "primary_path": [],
+                        "primary_min_snr": 0.0,
+                        "backup_paths": [],
+                        "backup_min_snrs": [],
+                        "relay_nodes": [],
+                        "reserved_resources": {},
+                        "reason": str(exc),
+                    }
+                )
+                continue
 
             backup_count = self._backup_count_for_flow(flow, mission)
             route_result = self.plan_routing(
@@ -403,6 +436,7 @@ class UAVRoutingPlanner:
             flow_results.append(
                 {
                     "flow": flow.to_dict(),
+                    "status": route_result["status"],
                     "selected_receiver": selected_receiver,
                     "primary_path": primary_path,
                     "primary_min_snr": route_result["primary_min_snr"],
@@ -421,7 +455,11 @@ class UAVRoutingPlanner:
                     set(mission.key_nodes)
                     | relay_nodes
                     | {item["flow"]["source"] for item in flow_results}
-                    | {item["selected_receiver"] for item in flow_results}
+                    | {
+                        item["selected_receiver"]
+                        for item in flow_results
+                        if item["selected_receiver"]
+                    }
                 ),
                 "edges": sorted(subgraph_edges),
             },

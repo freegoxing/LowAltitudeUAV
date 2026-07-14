@@ -284,7 +284,7 @@ def draw_task_communication_subgraph(
         flow_label = (
             f"{flow['flow_id']} | {flow['purpose']} | "
             f"recv: {flow_result['selected_receiver']} | "
-            f"P{flow['priority']}"
+            f"P{flow['priority']} | {flow_result['status']}"
         )
         legend_handles.append(
             mlines.Line2D(
@@ -381,8 +381,15 @@ def draw_task_communication_subgraph(
     flow_summary = []
     for flow_result in planning_result["flow_results"]:
         flow = flow_result["flow"]
+        primary_path = flow_result["primary_path"]
+        if not primary_path:
+            flow_summary.append(
+                f"{flow['flow_id']}: {flow['source']} -> "
+                f"{flow_result['selected_receiver']} | 不可达"
+            )
+            continue
         flow_summary.append(
-            f"{flow['flow_id']}: {flow_result['primary_path'][0]} -> "
+            f"{flow['flow_id']}: {primary_path[0]} -> "
             f"{flow_result['selected_receiver']} | "
             f"主路瓶颈 {flow_result['primary_min_snr']:.1f}dB | "
             f"备份 {len(flow_result['backup_paths'])}"
