@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uav-semantic-planner"
+version = "0.1.0"
+description = "Semantic communication and planning for low-altitude UAV networks"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "torch",
+    "torchvision",
+    "cudf-cu13==25.12.*",
+    "dask-cudf-cu13==25.12.*",
+    "cuml-cu13==25.12.*",
+    "cugraph-cu13==25.12.*",
+    "nx-cugraph-cu13==25.12.*",
+    "cuxfilter-cu13==25.12.*",
+    "cucim-cu13==25.12.*",
+    "pylibraft-cu13==25.12.*",
+    "raft-dask-cu13==25.12.*",
+    "cuvs-cu13==25.12.*",
+    "torch-geometric>=2.7.0",
+    "matplotlib>=3.10.8",
+    "cugraph-pyg-cu13>=0.0.0a0",
+    "plotly>=6.5.2",
+    "openai>=1.30.0",
+    "pyyaml>=6.0",
+    "json-repair>=0.61.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

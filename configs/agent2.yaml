@@ -1,0 +1,45 @@
+_base_: base.yaml
+
+model:
+  backend: qwen_chat
+  optimizer: Qwen/Qwen3-8B-AWQ
+  target: Qwen/Qwen3-8B-AWQ
+  optimizer_backend: qwen_chat
+  target_backend: qwen_chat
+  qwen_chat_base_url: http://localhost:8000/v1
+  qwen_chat_api_key: ""
+  qwen_chat_temperature: 0.7
+  qwen_chat_timeout_seconds: 300
+  qwen_chat_max_tokens: 4096
+  qwen_chat_enable_thinking: false
+
+train:
+  num_epochs: 3
+  batch_size: 8
+  accumulation: 1
+  seed: 42
+
+gradient:
+  minibatch_size: 8
+  merge_batch_size: 8
+  analyst_workers: 4
+
+optimizer:
+  learning_rate: 4
+  use_slow_update: false
+  use_meta_skill: false
+
+evaluation:
+  use_gate: true
+  sel_env_num: 0
+  test_env_num: 0
+  eval_test: true
+
+env:
+  name: uav_translation
+  skill_init: packages/uav-semantic-planner/src/uav_semantic_planner/agents/agent2/skills/initial.md
+  split_mode: split_dir
+  split_dir: data/agent2_translation_split
+  workers: 4
+  max_completion_tokens: 4096
+  limit: 0

@@ -1,28 +1,17 @@
 [project]
-name = "LowAltitudeUAV"
+name = "low-altitude-uav-workspace"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
-    "torch",
-    "torchvision",
-    "cudf-cu13==25.12.*",
-    "dask-cudf-cu13==25.12.*",
-    "cuml-cu13==25.12.*",
-    "cugraph-cu13==25.12.*",
-    "nx-cugraph-cu13==25.12.*",
-    "cuxfilter-cu13==25.12.*",
-    "cucim-cu13==25.12.*",
-    "pylibraft-cu13==25.12.*",
-    "raft-dask-cu13==25.12.*",
-    "cuvs-cu13==25.12.*",
-    "torch-geometric>=2.7.0",
-    "matplotlib>=3.10.8",
-    "cugraph-pyg-cu13>=0.0.0a0",
-    "plotly>=6.5.2",
-    "skillopt[webui]",
-    "json-repair>=0.61.3",
+    "uav-semantic-planner",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
 ]
 
 [tool.uv]
@@ -43,7 +32,7 @@ cucim-cu13 = { index = "nvidia" }
 pylibraft-cu13 = { index = "nvidia" }
 raft-dask-cu13 = { index = "nvidia" }
 cuvs-cu13 = { index = "nvidia" }
-skillopt = { workspace = true, editable = true }
+uav-semantic-planner = { workspace = true, editable = true }
 
 [[tool.uv.index]]
 name = "pytorch"
@@ -54,7 +43,7 @@ name = "nvidia"
 url = "https://pypi.nvidia.com"
 
 [tool.uv.workspace]
-members = ["src/SkillOpt"]
+members = ["packages/uav-semantic-planner"]
 
 [tool.ruff]
 line-length = 88

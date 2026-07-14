@@ -1,0 +1,19 @@
+model:
+  embedding_dim: 128
+  gru_hidden_dim: 64
+training:
+  batch_size: 64
+  epochs: 1000
+  learning_rate: 0.001
+  hgt_pretrain_epochs: 300
+  hgt_learning_rate: 0.001
+  seed: 42
+routing:
+  max_path_length: 10
+reward:
+  snr: 1.0
+  bottleneck: 1.5
+  stability: 0.5
+paths:
+  graph: checkpoints/UAV_Demo/uav_hetero_graph.pt
+  save_dir: checkpoints/UAV_Demo
