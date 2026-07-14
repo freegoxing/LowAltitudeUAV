@@ -1,5 +1,11 @@
 # 低空无人机语义通信系统 — 场景规划设计文档
 
+> **建模修订（任务优先通信）**：通信网络的首要作用是推进正在执行的任务，
+> 而不是将每一条数据都送回 `GND-C`。`GND-C` 仍负责全局授权、任务编排和
+> 关键态势留存；对时效敏感的救援数据则优先送达能立即采取行动的搜索、医疗、
+> 运输或中继节点。因而，路由的终点由任务角色决定，SNR 只是判断链路可用性
+> 和资源成本的一个状态，不能单独决定资源优先级。
+
 ## 节点分类体系（通信主体建模）
 
 系统中每一个可被知识图谱表征的实体，都被抽象为一个**通信主体节点**。
@@ -14,7 +20,7 @@
 | **空域** | 侦察无人机 | `UAV-S` | 实时态势感知与环境探测 | 低带宽上行 | 1–5 架 |
 | **地面** | 救援人员终端 | `GND-P` | 佩戴便携通信设备的地面救援人员 | 地-空上行 | 5–50 人 |
 | **地面** | 地面指挥车 | `GND-C` | 移动指挥中心，高功率通信 | 全频段地-空 | 1–3 辆 |
-| 地面 | 固定基站 | `BS` | 蜂窝/专网基站 | 大功率广覆盖 | 按区域部署 |
+| **地面** | 固定基站 | `BS` | 蜂窝/专网基站 | 大功率广覆盖 | 按区域部署 |
 | **逻辑** | 目标信息源 | `(TGT)` | 发现目标的侦察机/地面人员虚拟标记 | 依附于通信节点 | 任务相关 |
 
 ### 1.2 各节点详细属性与状态数据
@@ -51,6 +57,12 @@ UAV-M {
   link_state:    enum{LOS, NLOS, DISCONNECTED}
   semantic_throughput: B_s (tokens/s)  // 语义吞吐量
   connected_nodes: [node_id, ...]      // 当前连接的邻居节点列表
+
+  // ── 任务协同状态 ──
+  task_bindings:  [task_id, ...]       // 当前参与的任务
+  capabilities:   [侦察, 投递, 中继, 医疗协同, ...]
+  availability:   A ∈ [0, 1]           // 可投入当前任务的时间/载荷/电量综合余量
+  task_load:      ρ_task ∈ [0, 1]      // 已被任务占用的算力、带宽和机动资源比例
 
   // ── 传感器数据 ──
   camera_feed:   视觉语义摘要 (由机载模型提取)
@@ -110,8 +122,10 @@ GND-P {
 
   // ── 任务角色 ──
   role:           enum{搜索, 医疗, 运输, 指挥}
-  task_bindng:    task_id         // 当前绑定的任务ID
-  priority:       P ∈ [1, 5]     // 通信优先级（由 Agent 2 动态分配）
+  task_bindings:  [task_id, ...]  // 当前参与的任务
+  priority:       P ∈ [1, 5]     // 节点的任务通信优先级
+  availability:   A ∈ [0, 1]     // 人员、设备与任务窗口的可用度
+  eta_to_target:  T_ETA (s)      // 到达任务位置的预计时间
 }
 ```
 
@@ -160,18 +174,18 @@ BS {
 
 | 边类型 | 连接节点对 | 关键属性 | 说明 |
 |:-------|:----------|:---------|:-----|
-| **空-空链路** `A2A` | UAV ↔ UAV | SNR, 距离, 相对速度, 多普勒频偏 | 高机动性，链路快速变化 |
-| **空-地链路** `A2G` | UAV ↔ GND/BS | SNR, LOS/NLOS, 仰角, 路径损耗 | 受建筑遮挡影响大 |
-| **地-地链路** `G2G` | GND ↔ GND | 距离, 地形遮挡, 信号强度 | 地面人员间直接通信 |
-| **中继链路** `RLY` | Node → UAV-R → Node | 端到端时延, 中继容量, 跳数 | 经中继无人机转发 |
+| **空-空链路** `A2A` | UAV ↔ UAV | SNR, 可用带宽, 时延、可靠性、占用率 | 高机动性，链路快速变化 |
+| **空-地链路** `A2G` | UAV ↔ GND/BS | SNR, 可用带宽, LOS/NLOS、时延、占用率 | 受建筑遮挡影响大 |
+| **地-地链路** `G2G` | GND ↔ GND | SNR, 可用带宽, 地形遮挡、时延、占用率 | 地面人员间直接通信 |
+| **中继链路** `RLY` | Node → UAV-R → Node | 端到端时延, 中继容量、队列长度、跳数 | 经中继无人机转发 |
 | **回传链路** `BKH` | GND-C ↔ 云端/卫星 | 带宽, 时延, 可靠性 | 指挥车到后方的回传 |
 | **威胁关系** `THR` | Node → Obstacle/Weather | 威胁等级, 规避距离 | 表征节点受到的环境威胁 |
 
 每条边都携带一个动态更新的**链路质量评分**：
 
-$$Q_{link}(e_{ij}) = \alpha \cdot \text{SNR}_{ij} - \beta \cdot \tau_{ij} - \gamma \cdot P_{fail,ij}$$
+$$Q_{link}(e_{ij}) = \alpha \cdot q(\text{SNR}_{ij}) + \beta \cdot \hat{B}_{ij} - \gamma \cdot \hat{\tau}_{ij} - \delta \cdot P_{fail,ij} - \epsilon \cdot \rho_{ij}$$
 
-其中 $\tau_{ij}$ 为时延，$P_{fail,ij}$ 为链路中断概率。
+其中 $\hat{B}_{ij}$ 为相对任务需求归一化后的可用语义吞吐量，$\rho_{ij}$ 为链路或中继占用率。SNR 经阈值函数 $q(\cdot)$ 转为可用性得分，避免高 SNR 的非关键链路挤占关键任务资源。
 
 ---
 
@@ -190,7 +204,7 @@ $$Q_{link}(e_{ij}) = \alpha \cdot \text{SNR}_{ij} - \beta \cdot \tau_{ij} - \gam
 
 ### 3.2 任务需求向量
 
-每个任务实例被建模为一个**需求向量**，供 Agent 2 翻译为奖励权重 $\mathbf{W}$：
+每个任务实例被建模为一个**需求向量**，供 Agent 2 翻译为任务通信规范（MCS）：
 
 ```
 TaskInstance {
@@ -208,6 +222,12 @@ TaskInstance {
   latency_req:    τ_max (ms)                 // 最大可容忍时延
   reliability_req: R_min ∈ [0, 1]            // 最低链路可靠性
 
+  // ── 任务通信闭环 ──
+  event_source:   node_id                    // 事件发现或数据产生节点
+  action_receivers: [node_id, ...]           // 可直接推进任务的执行节点（按优先级排序）
+  command_receiver: node_id?                 // GND-C；仅控制/态势同步/升级时必达
+  flow_classes:   [FlowSpec, ...]            // 告警、协同、控制、归档等语义流
+
   // ── 空间约束 ──
   target_positions:  [(x,y,z), ...]          // 目标位置集
   no_fly_zones:      [polygon, ...]          // 禁飞区
@@ -215,34 +235,52 @@ TaskInstance {
 }
 ```
 
-### 3.3 Agent 2 的任务-资源映射规则
-
-Agent 2 将任务需求翻译为两层输出：
+其中每个 `FlowSpec` 定义为：
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    Agent 2 语义翻译输出                        │
-├──────────────────────────────────────────────────────────────┤
-│  ① 奖励函数权重向量 W = [w_target, w_safety, w_energy, w_comm] │
-│  ② 通信资源分配指令 ResourceAlloc:                             │
-│     - 带宽分配比例 (各节点/各路径)                               │
-│     - 发射功率调整建议                                         │
-│     - 中继节点指派                                            │
-│  ③ 路径规划约束 PathConstraints:                               │
-│     - 主路径要求（最短时间 / 最高SNR / 最低能耗）                  │
-│     - 备份路径数量                                            │
-│     - 自愈触发阈值                                            │
-└──────────────────────────────────────────────────────────────┘
+FlowSpec {
+  flow_id:        string
+  source:         node_id
+  receivers:      [node_id, ...]       // 可选终点，首个为首选行动接收者
+  purpose:        enum{告警确认, 搜救引导, 医疗协同, 载荷调度, 态势同步, 控制}
+  priority:       p ∈ [1, 5]
+  bandwidth_req:  B_min
+  latency_req:    τ_max
+  reliability_req:R_min
+  deadline:       t_deadline
+  delivery_mode:  enum{anycast, multicast, unicast}
+  command_sync:   enum{immediate, summary, on_escalation}
+}
 ```
 
-**救援任务的资源倾斜示例**：当 Agent 2 识别到 `TASK-SAR (Level 1)` 时：
+`action_receivers` 必须按“任务贡献、可用度、到达时间”而非“是否为指挥中心”排序。`anycast` 表示只要最先送达一个合格执行节点即可触发动作；`multicast` 用于需要搜索队、医疗组和指挥中心同时获知的升级事件。
 
-| 资源维度 | 常态分配 | 救援倾斜分配 | 调整逻辑 |
-|:---------|:---------|:------------|:---------|
-| 语义带宽 | 均匀分配 | 70% → 救援链路 | 救援相关节点的 Token 流优先传输 |
-| 中继无人机 | 按区域覆盖 | 集中部署于救援走廊 | UAV-R 重新定位至救援路线上空 |
-| 发射功率 | 标准功率 | 救援链路节点功率上调 +3dB | 保障救援通信的 SNR 裕量 |
-| 计算资源 | 均匀 | 优先处理救援态势数据 | 边缘计算优先服务救援 Token |
+### 3.3 Agent 2 输出：任务通信规范（MCS）
+
+Agent 2 只回答“任务需要什么通信”，**不选择路径、不指定中继节点、不直接分配带宽、
+时隙或功率**。这些执行决策全部由 RL 通信规划器在实时图谱上完成。
+
+```text
+MissionCommunicationSpecification {
+  mission_id, mission_type, mission_priority
+  key_nodes: [事件源、候选行动接收者、指挥节点]
+  mission_flows: [FlowSpec, ...]
+  resource_budget: {可用带宽比例上限、中继数量上限、功率上限}
+  backup_requirement: {每个优先级所需的主备路径数量与隔离等级}
+  healing_policy: {切换阈值、最大切换时延、自动恢复规则}
+}
+```
+
+其中 `resource_budget` 是规划边界而不是分配结果；`backup_requirement` 是冗余
+目标而不是具体备份节点；`healing_policy` 给出触发条件，RL 负责执行切换。奖励权重
+可以作为训练或推理时的可选条件输入，但不得替代每条 `FlowSpec` 的 QoS、优先级与
+接收者约束。
+
+| 职责 | Agent 2（任务语义层） | RL Planner（通信规划层） |
+|:---|:---|:---|
+| 决定任务参与方与业务流 | 输出 Key Nodes、Mission Flows | 不修改任务语义 |
+| 定义服务目标 | 输出 QoS、优先级、预算、备份/自愈要求 | 在约束内求解 |
+| 通信资源与拓扑 | 不指定具体路径、中继和配额 | 输出主备路径、中继、资源预留与切换动作 |
 
 ---
 
@@ -267,17 +305,53 @@ Agent 2 将任务需求翻译为两层输出：
                     └─────────────────────────────────────┘
 ```
 
-### 4.2 多路径规划算法
+### 4.2 任务优先的资源保障约束
 
-#### 步骤 1：构建通信拓扑图
+对每个语义流 $f$，规划器先从 `action_receivers` 中选择可行动终点，再联合决定
+路径 $P_f$、带宽/时隙份额 $x_{f,e}$、中继和备份路径；**不再默认将 `GND-C`
+设为终点**。行动接收者 $d$ 的效用为：
 
-将所有在线节点作为图节点，链路质量评分 $Q_{link}$ 作为边权重，构建加权有向图 $G_{comm}$。
+$$U(f,d) = w_1 C_{task}(d) + w_2 A(d) - w_3 T_{ETA}(d) - w_4 \tau(P_{s,d})$$
 
-#### 步骤 2：主路径规划
+其中 $C_{task}$ 表示节点角色和能力对该任务的贡献，$A$ 是节点可用度。仅在
+`command_sync = immediate`、事件升级、人工授权或无合格行动接收者时，才将
+`GND-C` 纳入强制终点集合。
 
-基于任务需求，在 $G_{comm}$ 上求解带约束的最优路径：
+调度必须同时满足以下硬约束：
 
-$$P_{primary} = \arg\max_{P \in \mathcal{P}} \sum_{e \in P} Q_{link}(e) \quad \text{s.t.} \quad \tau(P) \leq \tau_{max}, \; R(P) \geq R_{min}$$
+1. **接收者可执行性**：所选终点必须绑定同一任务、具备所需能力、`availability`
+   不低于阈值，且预计到达时间不超过任务窗口；不满足时不能因 SNR 高而被选中。
+2. **端到端 SLA**：$\tau(P_f) \leq \tau_f^{max}$、$R(P_f) \geq R_f^{min}$，并且
+   路径瓶颈可用吞吐量不得小于 $B_f^{min}$。SNR 低于调制编码阈值的边不可承载该流。
+3. **链路/中继容量**：任一边和中继上的已分配资源不得超过其可用容量：
+   $\sum_f x_{f,e} \leq B_e^{avail}$；中继的转发负载不得超过安全上限。
+4. **优先级抢占但保底**：更高优先级流可抢占低优先级的可抢占份额；控制流、飞行
+   安全流和已承诺的 L1 救援流保留最小资源，不能被普通态势流饿死。
+5. **资源—机动耦合**：被选为中继或行动接收者的 UAV 必须保留返航电量和避障安全
+   裕量；重定位时间必须早于流的截止时间。
+6. **故障域隔离**：L1 救援流的主备路径在中继节点和共同风险区域上尽量不相交；
+   当完全不相交不可行时，记录共享故障域并提高该流的预留容量。
+7. **指挥同步降级**：行动闭环先于低价值原始数据回传。行动节点获得确认后，向
+   `GND-C` 发送摘要、关键帧或升级告警；链路恢复后再补传归档数据。
+
+在满足硬约束的可行解中，优化目标为最大化任务完成收益与按时送达收益，并最小化
+资源消耗和对非关键流的影响：
+
+$$\max \sum_f p_f V_f \cdot \mathbb{1}[f\ \text{按 SLA 送达行动接收者}] - \lambda_1 E - \lambda_2 \sum_e \rho_e - \lambda_3 \text{PreemptCost}$$
+
+### 4.3 多路径规划算法
+
+#### 步骤 1：构建任务增强通信拓扑图
+
+将所有在线节点作为图节点；将链路质量、可用容量、占用率、故障域和节点任务能力
+写入图属性，构建任务增强图 $G_{task}$。对每个 `FlowSpec` 过滤不可执行的接收者和
+不满足最低 SNR/容量要求的边。
+
+#### 步骤 2：选择行动接收者并规划主路径
+
+先按 $U(f,d)$ 选择首个可行的行动接收者；再在 $G_{task}$ 上求解带约束的最优路径：
+
+$$P_{primary} = \arg\max_{P \in \mathcal{P}(s,d)} \sum_{e \in P} Q_{link}(e) \quad \text{s.t.} \quad \text{SLA、容量、能量和故障域约束}$$
 
 #### 步骤 3：K条不相交备份路径
 
@@ -287,30 +361,32 @@ $$P_{backup}^{(k)} \cap P_{primary} = \emptyset \quad \text{(节点级不相交)
 
 **为什么要求节点不相交？** 因为如果备份路径与主路径共用中间节点，该共享节点故障会导致主备同时失效，失去自愈能力。
 
-## 5. 完整场景示例：地震救援
+## 5. 完整场景示例：火灾搜救
 
 ### 5.1 场景描述
 
 ```
-地点：城市边缘发生 6.5 级地震
-目标：3处建筑倒塌点存在被困人员
-挑战：部分基站损毁、粉尘导致通信恶化、余震风险
+地点：城市仓储区发生火灾，浓烟遮挡且局部基站失效
+事件：`UAV-S-1` 热成像发现一名被困人员
+任务：先让最近、具备救援能力的搜索组与医疗组获得位置、通道和生命体征；
+      指挥车同步获取确认后的态势摘要并负责增援编排
+挑战：浓烟导致链路波动、现场中继容量有限、救援窗口短
 ```
 
 ### 5.2 节点部署态势
 
 ```
-                        ☁ 气象恶劣区（粉尘+强风）
+                        ☁ 火场高风险区（浓烟+热浪）
                        /
     [BS-1]            /         [BS-2] (损毁)
       |              /              ✕
       |    [UAV-R-1]·····→ [UAV-R-2]          ← 中继层
-      |   ↗    |    ↘           |
-   [UAV-M-1]  |  [UAV-M-2]  [UAV-M-3]        ← 任务层
-      |        |       |          |
-      ↓        ↓       ↓          ↓
-   [TGT-1] [GND-P×5] [TGT-2]  [TGT-3]       ← 地面层
-   被困点A   搜救队    被困点B   被困点C
+      |        ↙    ↓    ↘       |
+   [UAV-M-1]  [UAV-S-1]  [UAV-M-2]           ← 任务层
+      |          |         |
+      ↓          ↓         ↓
+  医疗组    [TGT-1]      搜索组               ← 地面/行动层
+           被困人员
              
    [GND-C] ← 指挥车（部署 LLM Agent 1 & 2）
 ```
@@ -321,88 +397,70 @@ $$P_{backup}^{(k)} \cap P_{primary} = \emptyset \quad \text{(节点级不相交)
 
 ```json
 {
-  "scenario": "地震救援",
+  "scenario": "仓储区火灾搜救",
   "targets": [
-    {"id": "TGT-1", "urgency": 5, "feasibility": 4, "T_gold": "1800s"},
-    {"id": "TGT-2", "urgency": 4, "feasibility": 3, "T_gold": "3600s"},
-    {"id": "TGT-3", "urgency": 3, "feasibility": 2, "T_gold": "7200s"}
+    {"id": "UAV-S-1", "urgency": 5, "feasibility": 4, "T_gold": "600s"}
   ],
-  "env_risk": {"dust_level": "heavy", "aftershock_prob": 0.3},
-  "comm_status": {"BS-2": "offline", "coverage_gap": "TGT-2 ~ TGT-3"},
+  "env_risk": {"smoke_level": "heavy", "fire_spread_risk": 0.3},
+  "comm_status": {"BS-2": "offline", "coverage_gap": "TGT-1 ~ medical-team"},
   "overall_level": "Level_1"
 }
 ```
 
-**② Agent 2 任务下发与资源分配**：
+**② Agent 2 生成 MCS**：
 
 ```json
 {
-  "task_id": "SAR-20260707-001",
-  "reward_weights": {"W": [0.65, 0.15, 0.10, 0.10]},
-  
-  "resource_allocation": {
-    "bandwidth_split": {
-      "rescue_chain_TGT1": 0.40,
-      "rescue_chain_TGT2": 0.30,
-      "rescue_chain_TGT3": 0.15,
-      "situational_awareness": 0.10,
-      "reserve": 0.05
-    },
-    "relay_deployment": {
-      "UAV-R-1": "reposition to cover TGT-1 ↔ GND-C corridor",
-      "UAV-R-2": "reposition to bridge BS-2 coverage gap"
-    },
-    "power_adjustment": {
-      "UAV-M-1": "+3dB (priority rescue TGT-1)",
-      "GND-P_medical": "+2dB (medical team uplink)"
-    }
-  },
-
-  "path_constraints": {
-    "primary_paths": 3,
-    "backup_paths_per_primary": 2,
-    "max_latency_ms": 200,
-    "min_reliability": 0.95,
-    "self_healing_threshold_snr_db": 8
-  }
+  "task_id": "SAR-FIRE-001",
+  "key_nodes": ["UAV-S-1", "GND-P-search-1", "GND-P-medical-1", "GND-C-1"],
+  "mission_flows": [
+    {"id": "F-1", "source": "UAV-S-1", "receivers": ["GND-P-search-1"],
+     "purpose": "搜救引导", "priority": 5, "delivery_mode": "anycast",
+     "bandwidth_req": "15 Mbps", "latency_req": "120 ms", "reliability_req": 0.99},
+    {"id": "F-2", "source": "UAV-S-1", "receivers": ["GND-P-medical-1"],
+     "purpose": "医疗协同", "priority": 4, "delivery_mode": "unicast",
+     "bandwidth_req": "8 Mbps", "latency_req": "200 ms", "reliability_req": 0.97},
+    {"id": "F-3", "source": "GND-P-search-1", "receivers": ["GND-C-1"],
+     "purpose": "态势同步", "priority": 2, "delivery_mode": "unicast",
+     "command_sync": "summary", "bandwidth_req": "2 Mbps", "latency_req": "1 s"}
+  ],
+  "resource_budget": {"mission_bandwidth_cap": "70%", "relay_count_cap": 3, "power_ceiling": "+3 dB"},
+  "backup_requirement": {"priority_5": 2, "priority_4": 1},
+  "healing_policy": {"switch_threshold_snr_db": 8, "switch_delay": "<500 ms", "recovery": "automatic"}
 }
 ```
 
-**③ 多路径规划结果**：
+**③ 多路径与资源规划结果**：
 
 ```
-═══ 救援链路 1：被困点A信息回传 → 指挥车 ═══
+═══ L1 行动流：发现点 → 最近搜索组（anycast，120ms）═══
 
-  主路径:    UAV-S-1(发现目标A) → UAV-R-1 → BS-1 → GND-C
-  备份路径1: UAV-S-1(发现目标A) → UAV-M-2 → UAV-R-2 → GND-C  (空-空中继)
-  备份路径2: UAV-S-1(发现目标A) ─── 直达 ──→ GND-C            (高功率直连)
-  热备节点:  UAV-R-1 的备份 = UAV-S-2 (可临时转为中继模式)
+  主路径:    UAV-S-1(热成像发现) → UAV-R-1 → GND-P-search-1
+  备份路径:  UAV-S-1 → UAV-M-2 → GND-P-search-2
+  资源保障:  40% 带宽/时隙；可抢占普通态势流；UAV-R-1 热备为 UAV-R-2
 
-═══ 救援链路 2：被困点B信息回传 → 指挥车 ═══
+═══ L1 协同流：发现点 → 医疗组（multicast，200ms）═══
 
-  主路径:    GND-P-1(发现目标B) → UAV-M-2 → UAV-R-1 → BS-1 → GND-C
-  备份路径1: GND-P-1(发现目标B) → UAV-M-2 → UAV-R-2 → GND-C
-  备份路径2: GND-P-1(发现目标B) → UAV-M-3 → GND-P-2(中转) → GND-C
-  热备节点:  UAV-R-2 的备份 = UAV-R-1 (交叉备份)
+  主路径:    UAV-S-1 → UAV-M-1 → GND-P-medical
+  备份路径:  UAV-S-1 → UAV-R-2 → GND-P-medical
+  资源保障:  30% 带宽/时隙；携带生命体征和安全通道语义 Token
 
-═══ 救援链路 3：被困点C信息回传 → 指挥车 ═══
+═══ 指挥同步流：搜索组确认 → 指挥车（summary，非行动阻塞）═══
 
-  主路径:    UAV-S-3(发现目标C) → UAV-M-3 → UAV-R-2 → GND-C
-  备份路径1: UAV-S-3(发现目标C) → UAV-R-1 → BS-1 → GND-C
-  备份路径2: UAV-S-3(发现目标C) ─── 直达 ──→ GND-C
-  热备节点:  UAV-M-3 的备份 = UAV-S-2
+  路径:      GND-P-search-1 → UAV-R-1 → BS-1 → GND-C
+  资源保障:  15% 带宽；只传确认、位置、风险和增援请求，原始视频延后补传
 ```
 
 **④ 自愈场景演示**：
 
 ```
-[T=120s] UAV-R-1 进入粉尘浓区，SNR 从 18dB 降至 9dB
+[T=120s] UAV-R-1 进入浓烟区，SNR 从 18dB 降至 9dB
          → 触发预警：激活备份路径1预热
 
 [T=135s] UAV-R-1 SNR 降至 2dB，判定链路中断
          → 自愈引擎启动
-         → 救援链路1 切换至备份路径1 (UAV-S-1 → UAV-M-2 → UAV-R-2 → GND-C)
-         → 切换耗时 380ms，救援通信未中断
+         → 行动流切换至备份路径 (UAV-S-1 → UAV-M-2 → GND-P-search-2)
+         → 切换耗时 380ms，搜索组仍持续获得目标引导；指挥摘要稍后补传
 ```
 
 ---
@@ -415,8 +473,9 @@ $$P_{backup}^{(k)} \cap P_{primary} = \emptyset \quad \text{(节点级不相交)
 ┌─────────────┐    原始传感器数据     ┌───────────────────┐
 │  各类节点     │ ──────────────────→ │  边缘预处理         │
 │  (UAV/GND)   │   位置/速度/电量     │  (机载/车载计算)    │
-│              │   SNR/链路状态       │                    │
+│              │   SNR/可用带宽/队列   │                    │
 │              │   相机/雷达/气象     │  · 语义特征提取      │
+│              │   角色/可用度/ETA     │  · 事件—任务关联     │
 └─────────────┘                     │  · 异常事件检测      │
                                     │  · 数据压缩/Token化  │
                                     └────────┬──────────┘
@@ -439,18 +498,18 @@ $$P_{backup}^{(k)} \cap P_{primary} = \emptyset \quad \text{(节点级不相交)
                                              │
                                              ▼
                               ┌──────────────────────────────┐
-                              │  Agent 2: 任务下发与资源调度    │
+                              │  Agent 2: 任务语义翻译（MCS）   │
                               │  输入: 级别L + 指挥官语音指令   │
-                              │  输出: W权重 + 资源分配 + 路径约束│
+                              │  输出: Flows + QoS + 预算/自愈约束│
                               └──────────────┬───────────────┘
                                              │
                                 ┌────────────┴────────────┐
                                 ▼                          ▼
                     ┌──────────────────┐      ┌───────────────────┐
-                    │  Graph Transformer│      │  多路径规划引擎     │
-                    │  → RL 路径规划    │      │  → 主/备路径计算    │
-                    │  → 物理动作输出   │      │  → 热备节点指派     │
-                    └──────────────────┘      │  → 自愈监控启动     │
+                    │  Graph Transformer│      │  RL 通信子图规划器   │
+                    │  → 图状态表征      │      │  → 行动接收者选择    │
+                    │                    │      │  → 主/备路径与资源预留│
+                    └──────────────────┘      │  → 自愈监控与切换    │
                                               └───────────────────┘
 ```
 
@@ -461,8 +520,32 @@ $$P_{backup}^{(k)} \cap P_{primary} = \emptyset \quad \text{(节点级不相交)
 | 原则 | 具体体现 |
 |:-----|:---------|
 | **节点即通信主体** | 所有实体（无人机、救援人员、基站）统一建模为知识图谱节点，具备标准化的属性与状态接口 |
-| **任务驱动资源流向** | Agent 2 根据任务类型与紧急度，动态调整带宽分配比例、中继部署位置、发射功率，使通信资源向任务关键链路集中 |
+| **任务驱动资源流向** | Agent 2 定义业务流、QoS、预算与冗余目标；RL 在实时图谱上决定带宽、中继、功率和路径，使资源向任务关键流集中 |
 | **多路径冗余保障** | 每条关键通信链路同时维护 K≥2 条节点不相交的备份路径，消除单点故障风险 |
 | **热备份快速接替** | 关键中继节点配备热备份节点，物理距离近、电量充足、负载低，可在 500ms 内完成接替 |
 | **预测性自愈** | 不等链路完全中断，在 SNR 下降到预警阈值时即开始预热备份路径，实现"先于故障"的预防性切换 |
 | **闭环状态更新** | 自愈切换完成后，立即更新知识图谱拓扑，触发 Agent 1 重新评估态势，形成感知-决策-执行-反馈闭环 |
+| **行动优先、指挥按需同步** | 紧急事件先送达能采取行动的任务节点；指挥车接收控制、摘要和升级告警，而非成为所有数据流的固定汇点 |
+| **SNR 是门槛而非目标** | SNR 用于判定链路可用性和裕量；终点选择与资源优先级同时受任务贡献、可用度、时限、容量和可靠性约束 |
+
+---
+
+## 8. 原型改造边界与验收条件
+
+当前 Mock 图谱和 RL 路由原型仅提供节点级/边级 SNR，并将 `GND-C` 作为固定终点；
+它只能作为链路连通性基线，不能验证本节定义的任务优先策略。实现时应先为图谱补齐
+以下字段：节点 `capabilities`、`task_bindings`、`availability`、`task_load`，边
+`available_bandwidth`、`latency`、`reliability`、`utilization`、`risk_domain`，以及
+任务的 `FlowSpec`。旧数据缺失这些字段时，调度器必须显式降级为“仅链路质量模式”，
+不得伪装为任务优先调度。
+
+建议以以下可测条件验收改造：
+
+1. 对“发现被困人员”事件，首条 L1 告警在 SLA 内送达至少一个合格搜索/医疗节点；
+   `GND-C` 不应是该告警的唯一成功接收者。
+2. 当链路容量不足时，L1 行动流获得其预留资源，普通视频/态势流被限速或抢占，控制流
+   仍保持保底带宽。
+3. 当首选行动接收者不可用、预计到达超时或链路 SLA 不可满足时，系统选择下一合格接收者；
+   仅在没有合格接收者时升级为指挥中心协调。
+4. 主路径失效后，切换路径仍满足行动流 SLA；若做不到，系统报告受影响的任务流和共享
+   故障域，而不是只报告瓶颈 SNR。
