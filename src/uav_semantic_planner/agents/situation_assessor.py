@@ -65,17 +65,49 @@ class SituationAssessor:
         """从 LLM 响应中提取 JSON"""
         try:
             # 尝试直接解析
-            return json.loads(text)
-        except json.JSONDecodeError:
+            return self._validate_response(json.loads(text))
+        except (json.JSONDecodeError, ValueError):
             # 尝试用正则提取 Markdown 代码块中的 JSON
             match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group(1))
+                    return self._validate_response(json.loads(match.group(1)))
                 except Exception:
                     pass
             print(f"[Error] LLM 返回了无法解析的格式: {text}")
             return self._fallback_response()
+
+    def _validate_response(self, response: object) -> dict:
+        """Validate the fixed Agent 1 output contract before evaluation."""
+        if not isinstance(response, dict):
+            raise ValueError("response must be a JSON object")
+
+        urgency = response.get("urgency")
+        feasibility = response.get("feasibility")
+        level = response.get("level")
+        report = response.get("report", "")
+        if (
+            isinstance(urgency, bool)
+            or not isinstance(urgency, int)
+            or not 1 <= urgency <= 5
+        ):
+            raise ValueError("urgency must be an integer from 1 to 5")
+        if (
+            isinstance(feasibility, bool)
+            or not isinstance(feasibility, int)
+            or not 1 <= feasibility <= 5
+        ):
+            raise ValueError("feasibility must be an integer from 1 to 5")
+        if level not in {"Level_1", "Level_2", "Level_3"}:
+            raise ValueError("level must be Level_1, Level_2, or Level_3")
+        if not isinstance(report, str):
+            raise ValueError("report must be a string")
+        return {
+            "urgency": urgency,
+            "feasibility": feasibility,
+            "level": level,
+            "report": report,
+        }
 
     def _fallback_response(self) -> dict:
         return {

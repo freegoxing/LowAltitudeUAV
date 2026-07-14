@@ -95,4 +95,4 @@ benchmark configs.
 - `skillopt_list_configs` is filesystem-only and safe to call anytime;
   `skillopt_train` / `skillopt_eval` shell out to the repo scripts and require
   the SkillOpt runtime deps (and, for real backends, model credentials — see
-  [`../../../.env.example`](../../../.env.example)).
+  [`../../../.env.example`](../../../.env)).

@@ -93,6 +93,11 @@ def _register_builtins() -> None:
         _ENV_REGISTRY["swebench"] = SWEBenchAdapter
     except ImportError:
         pass
+    try:
+        from skillopt.envs.uav_situation.adapter import UAVSituationAdapter
+        _ENV_REGISTRY["uav_situation"] = UAVSituationAdapter
+    except ImportError:
+        pass
 
 
 def get_adapter(cfg: dict):
