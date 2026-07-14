@@ -115,7 +115,7 @@ class RLTrainer:
                 )
 
                 for k, (n_embs, n_mask) in enumerate(
-                    zip(all_neighbor_embs, all_neighbor_masks)
+                    zip(all_neighbor_embs, all_neighbor_masks, strict=True)
                 ):
                     if n_embs is not None:
                         num_n = n_embs.size(0)
@@ -135,9 +135,6 @@ class RLTrainer:
 
             # 采样与交互
             actions_to_env = [None] * batch_size
-            step_rewards = [0.0] * batch_size
-            step_dones = [True] * batch_size
-
             if action_dist is not None:
                 sampled_action_indices = action_dist.sample()
                 log_probs = action_dist.log_prob(sampled_action_indices)
@@ -160,7 +157,7 @@ class RLTrainer:
                     else:
                         active_mask[global_idx] = False
             else:
-                for k, global_idx in enumerate(active_indices):
+                for global_idx in active_indices:
                     active_mask[global_idx] = False
 
             # Env Batch Step
@@ -176,7 +173,7 @@ class RLTrainer:
             )
             step_results = self.env.step_batch(batch_states, actions_to_env, all_pots)
 
-            for i, (rew, done, info) in enumerate(step_results):
+            for i, (rew, done, _info) in enumerate(step_results):
                 if active_mask[i]:
                     rewards_list[i].append(rew)
                     if done:
@@ -225,11 +222,9 @@ class RLTrainer:
                 entropy = entropies_list[i][j]
                 ret = returns_t[j]
 
-                advantage = ret - val.item()
+                advantage = ret - val.detach()
                 policy_loss -= log_prob * advantage
-                value_loss += F.smooth_l1_loss(
-                    val, torch.tensor(ret, device=self.device)
-                )
+                value_loss += F.smooth_l1_loss(val, ret)
                 entropy_loss -= entropy
 
             total_loss += (

@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import sys
-from collections import defaultdict
 
 # 自动处理路径
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,12 +16,16 @@ src_dir = os.path.join(project_root, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-import torch
+import torch  # noqa: E402
+import torch.nn.functional as F  # noqa: E402
 
-from uav_semantic_planner.envs.environment import UAVRLEnvironment
-from uav_semantic_planner.models.models import RLPolicyNet, UAVHGTEncoder
-from uav_semantic_planner.trainer.trainer import RLTrainer
-from uav_semantic_planner.utils.seeding import set_seed
+from uav_semantic_planner.envs.environment import UAVRLEnvironment  # noqa: E402
+from uav_semantic_planner.models.models import (  # noqa: E402
+    RLPolicyNet,
+    UAVHGTEncoder,
+)
+from uav_semantic_planner.trainer.trainer import RLTrainer  # noqa: E402
+from uav_semantic_planner.utils.seeding import set_seed  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -41,6 +44,14 @@ def main():
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--hgt_pretrain_epochs", type=int, default=300)
+    parser.add_argument("--hgt_lr", type=float, default=0.001)
+    parser.add_argument(
+        "--encoder_pt",
+        type=str,
+        default=None,
+        help="HGT 热启动权重：支持纯 encoder state_dict 或联合训练 checkpoint",
+    )
     parser.add_argument("--max_path_length", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
 
@@ -81,11 +92,10 @@ def main():
 
     # 拼接原始的 edge_index
     src_list, dst_list, type_list = [], [], []
-    inv_rel_map = {k: v for k, v in relation_map.items()}
-
     for (ut, rel_name, vt), e_idx in edge_index_dict.items():
-        src_list.append(e_idx[0])
-        dst_list.append(e_idx[1])
+        # HGT 的 edge_index 是每个节点类型内的局部索引，环境需要全局索引。
+        src_list.append(x_dict_ids[ut][e_idx[0]])
+        dst_list.append(x_dict_ids[vt][e_idx[1]])
         type_list.append(torch.full((e_idx.size(1),), relation_map[rel_name]))
 
     if src_list:
@@ -113,6 +123,30 @@ def main():
         out_channels=args.embedding_dim,
         metadata=metadata,
     ).to(device)
+    if args.encoder_pt is not None:
+        if not os.path.exists(args.encoder_pt):
+            raise FileNotFoundError(f"未找到 encoder 权重: {args.encoder_pt}")
+        encoder_checkpoint = torch.load(
+            args.encoder_pt, map_location=device, weights_only=True
+        )
+        if (
+            isinstance(encoder_checkpoint, dict)
+            and "encoder_state_dict" in encoder_checkpoint
+        ):
+            saved_dim = encoder_checkpoint.get("embedding_dim")
+            if saved_dim is not None and saved_dim != args.embedding_dim:
+                raise ValueError(
+                    f"encoder embedding_dim={saved_dim} 与当前 "
+                    f"--embedding_dim={args.embedding_dim} 不一致"
+                )
+            encoder_state = encoder_checkpoint["encoder_state_dict"]
+        else:
+            encoder_state = encoder_checkpoint
+        try:
+            encoder.load_state_dict(encoder_state)
+        except RuntimeError as exc:
+            raise ValueError("encoder 权重与当前图 metadata/模型维度不兼容") from exc
+        print(f"--- 已热启动 HGT Encoder: {args.encoder_pt} ---")
 
     # 获取节点的初始特征表达
     for k in x_dict_ids:
@@ -122,6 +156,43 @@ def main():
     if weak_link_index is not None:
         weak_link_index = weak_link_index.to(device)
 
+    # 用最短图距离作为自监督信号，避免将随机 HGT 嵌入冻结给 RL。
+    # 目标相似度随距离衰减，不可达节点的目标为 0。
+    distance = torch.full((total_nodes, total_nodes), float("inf"), device=device)
+    distance.fill_diagonal_(0)
+    if full_edge_index.numel() > 0:
+        distance[full_edge_index[0], full_edge_index[1]] = 1
+    for k in range(total_nodes):
+        distance = torch.minimum(distance, distance[:, k : k + 1] + distance[k : k + 1])
+    similarity_target = torch.where(
+        torch.isfinite(distance), torch.exp(-distance / 2.0), torch.zeros_like(distance)
+    )
+
+    if args.hgt_pretrain_epochs > 0:
+        print(f"--- HGT 图距离自监督预训练: {args.hgt_pretrain_epochs} epochs ---")
+        encoder_optimizer = torch.optim.AdamW(encoder.parameters(), lr=args.hgt_lr)
+        encoder.train()
+        for epoch in range(1, args.hgt_pretrain_epochs + 1):
+            h_dict = encoder(x_dict_ids, edge_index_dict, weak_link_index)
+            embeddings = torch.zeros(total_nodes, args.embedding_dim, device=device)
+            for nt, h_tensor in h_dict.items():
+                embeddings[x_dict_ids[nt]] = h_tensor
+            normalized = F.normalize(embeddings, dim=-1)
+            predicted = normalized @ normalized.T
+            loss = F.mse_loss(predicted, similarity_target)
+            encoder_optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(encoder.parameters(), 1.0)
+            encoder_optimizer.step()
+            if epoch == 1 or epoch % 50 == 0 or epoch == args.hgt_pretrain_epochs:
+                logging.info(
+                    "HGT pretrain %d/%d | Loss: %.6f",
+                    epoch,
+                    args.hgt_pretrain_epochs,
+                    loss.item(),
+                )
+
+    encoder.eval()
     with torch.no_grad():
         h_dict = encoder(x_dict_ids, edge_index_dict, weak_link_index)
 
@@ -173,6 +244,8 @@ def main():
     print("--- 正在采样通信对 ---")
     target_pairs = sample_uav_communication_pairs(env, num_samples=2000)
     eval_pairs = random.sample(target_pairs, min(len(target_pairs), 100))
+    eval_pair_set = set(eval_pairs)
+    target_pairs = [pair for pair in target_pairs if pair not in eval_pair_set]
     print(f"--- 采得训练对: {len(target_pairs)}, 评估对: {len(eval_pairs)} ---")
 
     if not target_pairs:
@@ -182,8 +255,6 @@ def main():
 
     # 5. 训练循环
     num_batches = max(1, args.epochs // args.batch_size)
-    history = defaultdict(list)
-
     print("--- 开始训练 ---")
     for b in range(1, num_batches + 1):
         batch_pairs = [random.choice(target_pairs) for _ in range(args.batch_size)]
@@ -198,7 +269,7 @@ def main():
 
         if b % 10 == 0:
             logging.info(
-                f"Batch {b}/{num_batches} | Reward: {avg_reward:.2f} | SR: {sr:.2%} | Loss: {float(loss):.4f}"
+                f"Batch {b}/{num_batches} | Reward: {avg_reward:.2f} | SR: {sr:.2%} | Loss: {loss.detach().item():.4f}"
             )
 
         if b % 50 == 0 or b == num_batches:
@@ -220,7 +291,15 @@ def main():
     # 6. 保存模型
     os.makedirs(args.save_dir, exist_ok=True)
     save_path = os.path.join(args.save_dir, "uav_policy_final.pt")
-    torch.save(policy_net.state_dict(), save_path)
+    torch.save(
+        {
+            "policy_state_dict": policy_net.state_dict(),
+            "encoder_state_dict": encoder.state_dict(),
+            "embedding_dim": args.embedding_dim,
+            "gru_hidden_dim": args.gru_hidden_dim,
+        },
+        save_path,
+    )
     print(f"--- 训练完成，模型保存至: {save_path} ---")
 
 

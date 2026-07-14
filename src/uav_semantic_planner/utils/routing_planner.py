@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import networkx as nx
-import numpy as np
 import torch
 from torch_geometric.data import Data
 
@@ -126,22 +125,56 @@ class UAVRoutingPlanner:
             edge_index=full_edge_index, edge_type=full_edge_type, num_nodes=total_nodes
         )
 
+        saved_model = None
+        if os.path.exists(self.model_pt_path):
+            saved_model = torch.load(
+                self.model_pt_path, map_location=self.device, weights_only=True
+            )
+        else:
+            raise FileNotFoundError(f"未找到路由模型: {self.model_pt_path}")
+
+        if not (
+            isinstance(saved_model, dict)
+            and "policy_state_dict" in saved_model
+            and "encoder_state_dict" in saved_model
+        ):
+            raise ValueError(
+                "路由模型必须同时包含 policy_state_dict 和 "
+                "encoder_state_dict；旧版纯 policy checkpoint 会导致推理时"
+                "隐式使用随机 encoder，请重新训练或转换 checkpoint"
+            )
+        embedding_dim = (
+            saved_model.get("embedding_dim", 128)
+            if "policy_state_dict" in saved_model
+            else 128
+        )
+        gru_hidden_dim = (
+            saved_model.get("gru_hidden_dim", 64)
+            if "policy_state_dict" in saved_model
+            else 64
+        )
+
         encoder = UAVHGTEncoder(
             num_nodes_dict=num_nodes_dict,
-            embedding_dim=128,
-            hidden_channels=128,
-            out_channels=128,
+            embedding_dim=embedding_dim,
+            hidden_channels=embedding_dim,
+            out_channels=embedding_dim,
             metadata=checkpoint["metadata"],
         ).to(self.device)
+        encoder.load_state_dict(saved_model["encoder_state_dict"])
+        encoder.eval()
 
-        h_dict = encoder(
-            checkpoint["x_dict_ids"],
-            checkpoint["edge_index_dict"],
-            checkpoint.get("weak_link_index"),
-        )
-        self.node_embeddings = torch.zeros(total_nodes, 128, device=self.device)
-        for nt, h_tensor in h_dict.items():
-            self.node_embeddings[checkpoint["x_dict_ids"][nt]] = h_tensor
+        with torch.no_grad():
+            h_dict = encoder(
+                checkpoint["x_dict_ids"],
+                checkpoint["edge_index_dict"],
+                checkpoint.get("weak_link_index"),
+            )
+            self.node_embeddings = torch.zeros(
+                total_nodes, embedding_dim, device=self.device
+            )
+            for nt, h_tensor in h_dict.items():
+                self.node_embeddings[checkpoint["x_dict_ids"][nt]] = h_tensor
 
         self.env = UAVRLEnvironment(
             data=data,
@@ -155,11 +188,10 @@ class UAVRoutingPlanner:
             node_types=checkpoint["node_types"],
         )
 
-        self.policy = RLPolicyNet(embedding_dim=128, gru_hidden_dim=64).to(self.device)
-        if os.path.exists(self.model_pt_path):
-            self.policy.load_state_dict(
-                torch.load(self.model_pt_path, map_location=self.device, weights_only=True)
-            )
+        self.policy = RLPolicyNet(
+            embedding_dim=embedding_dim, gru_hidden_dim=gru_hidden_dim
+        ).to(self.device)
+        self.policy.load_state_dict(saved_model["policy_state_dict"])
         self.policy.eval()
 
     def _build_masked_edges(self, blocked_nodes: set[int]) -> set[tuple[int, int]]:
@@ -231,7 +263,7 @@ class UAVRoutingPlanner:
             masked_edges = set()
 
         self.env.reset(start_int, target_int)
-        path_memory = torch.zeros(1, 64, device=self.device)
+        path_memory = torch.zeros(1, self.policy.gru_hidden_dim, device=self.device)
         stack = []
         tried_actions: dict[int, set[int]] = {start_int: set()}
         target_emb = self.node_embeddings[target_int].unsqueeze(0)
@@ -242,17 +274,23 @@ class UAVRoutingPlanner:
 
             valid_actions = self.env.get_valid_actions()
             valid_actions = [
-                action for action in valid_actions if (curr_node, action) not in masked_edges
+                action
+                for action in valid_actions
+                if (curr_node, action) not in masked_edges
             ]
             if curr_node not in tried_actions:
                 tried_actions[curr_node] = set()
             valid_actions = [
-                action for action in valid_actions if action not in tried_actions[curr_node]
+                action
+                for action in valid_actions
+                if action not in tried_actions[curr_node]
             ]
 
             if not valid_actions:
                 if stack:
-                    print(f"  [预警] {self.node_map[curr_node]} 遭遇死胡同，执行战术回溯...")
+                    print(
+                        f"  [预警] {self.node_map[curr_node]} 遭遇死胡同，执行战术回溯..."
+                    )
                     prev_memory, prev_node, prev_visited = stack.pop()
                     self.env.state.current_node = prev_node
                     self.env.state.visited = prev_visited.copy()
@@ -283,7 +321,9 @@ class UAVRoutingPlanner:
             best_action_idx = action_dist.logits.argmax(dim=-1).item()
             chosen_action = valid_actions[best_action_idx]
             tried_actions[curr_node].add(chosen_action)
-            stack.append((path_memory.clone(), curr_node, self.env.state.visited.copy()))
+            stack.append(
+                (path_memory.clone(), curr_node, self.env.state.visited.copy())
+            )
             self.env.step(chosen_action)
             path_memory = next_memory
             print(
@@ -356,12 +396,13 @@ class UAVRoutingPlanner:
                     "\n[智能调整] 发现备用路径质量优于原规划主路径，自动进行主备路由翻转换路！"
                 )
                 primary_path, backup_paths[0] = backup_paths[0], primary_path
-                primary_min_snr, backup_min_snrs[0] = backup_min_snrs[0], primary_min_snr
+                primary_min_snr, backup_min_snrs[0] = (
+                    backup_min_snrs[0],
+                    primary_min_snr,
+                )
 
         primary_path_names = [self.node_map[n] for n in primary_path]
-        backup_path_names = [
-            [self.node_map[n] for n in path] for path in backup_paths
-        ]
+        backup_path_names = [[self.node_map[n] for n in path] for path in backup_paths]
 
         return {
             "status": "planned",
@@ -426,7 +467,9 @@ class UAVRoutingPlanner:
                 relay_nodes.update(node for node in path[1:-1])
 
             reserved_resources = {
-                "bandwidth_budget": mission.resource_budget.get("mission_bandwidth_cap"),
+                "bandwidth_budget": mission.resource_budget.get(
+                    "mission_bandwidth_cap"
+                ),
                 "relay_count_cap": mission.resource_budget.get("relay_count_cap"),
                 "power_ceiling": mission.resource_budget.get("power_ceiling"),
                 "path_hops": max(0, len(primary_path) - 1),
@@ -464,7 +507,8 @@ class UAVRoutingPlanner:
                 "edges": sorted(subgraph_edges),
             },
             "selected_receivers": {
-                item["flow"]["flow_id"]: item["selected_receiver"] for item in flow_results
+                item["flow"]["flow_id"]: item["selected_receiver"]
+                for item in flow_results
             },
         }
 
