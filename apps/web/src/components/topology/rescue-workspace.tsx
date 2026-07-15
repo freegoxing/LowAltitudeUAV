@@ -1,3 +1,16 @@
 "use client";
-import { Map } from "lucide-react";import { useTopologyStore } from "@/stores/use-topology-store";import type { ViewMode } from "@/types/dashboard";import styles from "./rescue-workspace.module.css";
-const modes:[ViewMode,string][]=[["map","地图"],["topology","拓扑"],["hybrid","混合"]];export function RescueWorkspace(){const mode=useTopologyStore(s=>s.viewMode);const set=useTopologyStore(s=>s.setViewMode);return <main className={styles.workspace}><div className={styles.toolbar}><strong>态势工作区</strong><div className={styles.modes}>{modes.map(([key,label])=><button className={mode===key?styles.active:""} key={key} onClick={()=>set(key)}>{label}</button>)}</div></div><div className={styles.canvas}><div className={styles.empty}><div className={styles.icon}><Map size={21}/></div><h2>浅色态势工作区</h2><p>第一阶段已完成工作区布局。节点、通信链路与任务路径将在下一阶段接入。</p></div></div></main>}
+
+import { ReactFlowProvider } from "@xyflow/react";
+
+import { TopologyCanvas } from "./topology-canvas";
+import { TopologyToolbar } from "./topology-toolbar";
+import styles from "./rescue-workspace.module.css";
+
+export function RescueWorkspace() {
+    return (
+        <main className={styles.workspace}>
+            <TopologyToolbar />
+            <ReactFlowProvider><TopologyCanvas /></ReactFlowProvider>
+        </main>
+    );
+}

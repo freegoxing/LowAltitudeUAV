@@ -10,6 +10,7 @@
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.2",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
     "react": "19.2.4",
