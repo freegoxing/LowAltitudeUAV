@@ -1,0 +1,12 @@
+export type NodeStatus = "online" | "busy" | "warning" | "offline";
+export type NodePriority = "P0" | "P1" | "P2" | "normal";
+export type RescueNodeType = "command_center" | "command_vehicle" | "mission_drone" | "relay_drone" | "communication_drone" | "temporary_base_station" | "satellite_terminal" | "rescue_team" | "medical_point" | "shelter" | "trapped_area";
+export interface RescueNode { id: string; name: string; type: RescueNodeType; status: NodeStatus; priority: NodePriority; position: { x: number; y: number }; longitude: number; latitude: number; altitude?: number; speed?: number; battery?: number; signalStrength: number; latency: number; bandwidth: number; packetLoss: number; load: number; currentTask?: string; region: string; connectedNodeIds: string[]; alertCount: number; isCritical: boolean; }
+export type LinkType = "primary" | "relay" | "backup" | "emergency";
+export type LinkStatus = "normal" | "degraded" | "unstable" | "interrupted";
+export interface CommunicationLink { id: string; source: string; target: string; type: LinkType; status: LinkStatus; priority: "critical" | "high" | "normal"; bandwidth: number; latency: number; packetLoss: number; signalStrength: number; load: number; isBackup: boolean; isCritical: boolean; pathId?: string; }
+export type TaskStatus = "pending" | "planning" | "running" | "completed" | "interrupted";
+export interface RescueTask { id: string; name: string; type: string; priority: "P0" | "P1" | "P2"; status: TaskStatus; progress: number; assignedNodeIds: string[]; targetNodeIds: string[]; region: string; startedAt?: string; estimatedCompletionAt?: string; }
+export interface PlanningResult { planId: string; status: "idle" | "running" | "completed" | "failed"; criticalNodeIds: string[]; criticalLinkIds: string[]; primarySubgraphNodeIds: string[]; primarySubgraphLinkIds: string[]; backupSubgraphNodeIds: string[]; backupSubgraphLinkIds: string[]; connectivityRate: number; averageLatency: number; averagePacketLoss: number; resourceCost: number; reward: number; durationMs: number; updatedAt: string; }
+export interface RescueAlert { id: string; level: "critical" | "high" | "medium" | "info"; title: string; description: string; relatedObject: string; status: "open" | "processing" | "resolved"; occurredAt: string; }
+export interface SystemEvent { id: string; time: string; type: "task" | "network" | "alert" | "system"; message: string; relatedObject: string; priority: "high" | "medium" | "low"; status: "active" | "completed" | "pending"; }

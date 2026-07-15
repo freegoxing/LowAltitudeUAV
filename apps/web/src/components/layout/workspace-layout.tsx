@@ -1,0 +1,2 @@
+import { RescueWorkspace } from "@/components/topology/rescue-workspace";import { AppHeader } from "./app-header";import { BottomConsole } from "./bottom-console";import { LeftSidebar } from "./left-sidebar";import { RightSidebar } from "./right-sidebar";import styles from "./workspace-layout.module.css";
+export function WorkspaceLayout(){return <div className={styles.shell}><AppHeader/><div className={styles.grid}><LeftSidebar/><div className={styles.center}><RescueWorkspace/></div><RightSidebar/><div className={styles.bottom}><BottomConsole/></div></div></div>}

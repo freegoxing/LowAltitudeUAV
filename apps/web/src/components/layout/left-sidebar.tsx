@@ -1,0 +1,2 @@
+import { PlanningControls } from "@/components/overview/planning-controls";import { ResourceSummary } from "@/components/overview/resource-summary";import { ScenarioSummary } from "@/components/overview/scenario-summary";import { TaskList } from "@/components/overview/task-list";import styles from "./workspace-layout.module.css";
+export function LeftSidebar(){return <aside className={styles.left}><ScenarioSummary/><TaskList/><ResourceSummary/><PlanningControls/></aside>}

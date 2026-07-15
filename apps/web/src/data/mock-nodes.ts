@@ -1,0 +1,7 @@
+import type { RescueNode } from "@/types/rescue";
+export const mockNodes: RescueNode[] = [
+    { id: "n-command", name: "北部联合指挥中心", type: "command_center", status: "online", priority: "P0", position: { x: 50, y: 50 }, longitude: 116.32, latitude: 40.12, signalStrength: -48, latency: 18, bandwidth: 120, packetLoss: 0.2, load: 42, region: "青云市北部山区", connectedNodeIds: ["n-relay", "n-base"], alertCount: 0, isCritical: true },
+    { id: "n-relay", name: "中继无人机 R-03", type: "relay_drone", status: "busy", priority: "P1", position: { x: 42, y: 35 }, longitude: 116.35, latitude: 40.16, altitude: 420, speed: 12, battery: 68, signalStrength: -67, latency: 32, bandwidth: 60, packetLoss: 0.8, load: 71, currentTask: "通信中继保障", region: "东岭搜救区", connectedNodeIds: ["n-command", "n-team"], alertCount: 1, isCritical: true },
+    { id: "n-base", name: "临时基站 B-02", type: "temporary_base_station", status: "warning", priority: "P1", position: { x: 64, y: 44 }, longitude: 116.28, latitude: 40.18, signalStrength: -76, latency: 51, bandwidth: 40, packetLoss: 2.3, load: 84, region: "河谷安置区", connectedNodeIds: ["n-command"], alertCount: 2, isCritical: true },
+    { id: "n-team", name: "山鹰救援队", type: "rescue_team", status: "online", priority: "P2", position: { x: 31, y: 66 }, longitude: 116.39, latitude: 40.09, signalStrength: -72, latency: 43, bandwidth: 18, packetLoss: 1.1, load: 38, currentTask: "人员搜救", region: "东岭搜救区", connectedNodeIds: ["n-relay"], alertCount: 0, isCritical: false },
+];

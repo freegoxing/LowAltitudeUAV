@@ -1,0 +1,2 @@
+import type { PlanningResult } from "@/types/rescue";
+export const mockPlanningResult: PlanningResult = { planId: "RL-Plan-07", status: "completed", criticalNodeIds: ["n-command", "n-relay", "n-base"], criticalLinkIds: ["l-1", "l-2"], primarySubgraphNodeIds: ["n-command", "n-relay", "n-team"], primarySubgraphLinkIds: ["l-1", "l-2"], backupSubgraphNodeIds: ["n-command", "n-base"], backupSubgraphLinkIds: ["l-3"], connectivityRate: 100, averageLatency: 46, averagePacketLoss: 1.4, resourceCost: 63, reward: 0.872, durationMs: 2360, updatedAt: "2026-07-15T09:32:18+08:00" };

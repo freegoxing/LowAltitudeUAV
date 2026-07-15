@@ -1,0 +1,3 @@
+import { PanelCard } from "@/components/ui/panel-card"; import { SectionHeader } from "@/components/ui/section-header"; import styles from "./overview.module.css";
+const metrics=[{label:"在线节点",value:"128",note:"较上一时刻 +2"},{label:"救援任务",value:"12",note:"执行中 5"},{label:"通信覆盖率",value:"96.8%",note:"目标 ≥ 95%"},{label:"异常链路",value:"3",note:"严重 1 条"}];
+export function ScenarioSummary(){return <PanelCard><SectionHeader title="场景概要" meta="实时态势"/><div className={`${styles.body} ${styles.metrics}`}>{metrics.map((m)=><div className={styles.metric} key={m.label}><span>{m.label}</span><strong>{m.value}</strong><small>{m.note}</small></div>)}</div></PanelCard>}

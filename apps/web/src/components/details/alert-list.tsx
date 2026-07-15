@@ -1,0 +1,2 @@
+import { mockAlerts } from "@/data/mock-alerts";import { PanelCard } from "@/components/ui/panel-card";import { SectionHeader } from "@/components/ui/section-header";import styles from "./details.module.css";
+export function AlertList(){return <PanelCard><SectionHeader title="告警列表" meta={`${mockAlerts.length} 条`}/><div className={`${styles.body} ${styles.alerts}`}>{mockAlerts.map(a=><div className={`${styles.alert} ${a.level==="critical"?styles.critical:""}`} key={a.id}><strong>{a.title}</strong><span>{a.relatedObject} · {a.occurredAt}</span></div>)}</div></PanelCard>}

@@ -1,0 +1,3 @@
+"use client";
+import { PanelCard } from "@/components/ui/panel-card";import { SectionHeader } from "@/components/ui/section-header";import { usePlanningStore } from "@/stores/use-planning-store";import styles from "./overview.module.css";
+export function PlanningControls(){const set=usePlanningStore(s=>s.setSimulationStatus);return <PanelCard><SectionHeader title="规划控制"/><div className={`${styles.body} ${styles.controls}`}><button className={`${styles.button} ${styles.primary}`} onClick={()=>set("running")}>运行规划</button><button className={styles.button} onClick={()=>set("paused")}>暂停</button><button className={styles.button}>生成备用路径</button><button className={styles.button} onClick={()=>set("idle")}>重置仿真</button></div></PanelCard>}

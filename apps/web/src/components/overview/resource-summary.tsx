@@ -1,0 +1,2 @@
+import { PanelCard } from "@/components/ui/panel-card";import { SectionHeader } from "@/components/ui/section-header";import styles from "./overview.module.css";
+const rows=[["无人机","18 / 24"],["救援人员","86 / 104"],["临时基站","6 / 8"],["运输车辆","12 / 15"]];export function ResourceSummary(){return <PanelCard><SectionHeader title="救援资源"/><div className={`${styles.body} ${styles.resources}`}>{rows.map(([a,b])=><div className={styles.resource} key={a}><span>{a}</span><strong>{b}</strong></div>)}</div></PanelCard>}
