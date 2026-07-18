@@ -22,3 +22,13 @@ test("passes the center grid height through to the React Flow canvas", () => {
         /\.canvas\s*{[^}]*min-height:0[^}]*overflow:hidden[^}]*}/,
     );
 });
+
+test("keeps map background behind nodes and exposes visual preference styles", () => {
+    assert.match(
+        workspaceStyles,
+        /\.react-flow__viewport-portal\)\s*{\s*z-index:0;/,
+    );
+    assert.match(workspaceStyles, /\.nodePriority\s*{[^}]*box-shadow:/);
+    assert.match(workspaceStyles, /\.mapBackgroundSoft\s*{[^}]*opacity:/);
+    assert.match(workspaceStyles, /\.visualModes\s*{[^}]*display:flex/);
+});

@@ -1,4 +1,5 @@
 export type ViewMode = "map" | "topology" | "hybrid";
+export type MapVisualPreference = "nodePriority" | "mapPriority";
 export type ConsoleTab = "events" | "agent" | "rl" | "api";
 export type ConnectionStatus = "connected" | "connecting" | "disconnected";
 export type SimulationStatus = "idle" | "running" | "paused";

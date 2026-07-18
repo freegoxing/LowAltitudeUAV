@@ -2,7 +2,11 @@ import { create } from "zustand";
 
 import { mockLinks } from "@/data/mock-links";
 import { mockNodes } from "@/data/mock-nodes";
-import type { LayerVisibility, ViewMode } from "@/types/dashboard";
+import type {
+    LayerVisibility,
+    MapVisualPreference,
+    ViewMode,
+} from "@/types/dashboard";
 import type {
     LinkStatus,
     LinkType,
@@ -20,6 +24,7 @@ interface TopologyState {
     selectedNodeId: string | null;
     selectedLinkId: string | null;
     viewMode: ViewMode;
+    mapVisualPreference: MapVisualPreference;
     layers: LayerVisibility;
     filters: TopologyFilters;
     highlightedTaskId: string | null;
@@ -30,6 +35,7 @@ interface TopologyState {
     selectLink: (id: string) => void;
     clearSelection: () => void;
     setViewMode: (mode: ViewMode) => void;
+    setMapVisualPreference: (preference: MapVisualPreference) => void;
     toggleLayer: (key: keyof LayerVisibility) => void;
     setNodeTypes: (types: RescueNodeType[]) => void;
     setNodeStatuses: (statuses: NodeStatus[]) => void;
@@ -56,6 +62,7 @@ export const useTopologyStore = create<TopologyState>((set) => ({
     selectedNodeId: "UAV-R-5",
     selectedLinkId: null,
     viewMode: "hybrid",
+    mapVisualPreference: "nodePriority",
     layers: defaultLayers,
     filters: defaultTopologyFilters,
     highlightedTaskId: "t-1",
@@ -66,6 +73,7 @@ export const useTopologyStore = create<TopologyState>((set) => ({
     selectLink: (selectedLinkId) => set({ selectedLinkId, selectedNodeId: null }),
     clearSelection: () => set({ selectedNodeId: null, selectedLinkId: null }),
     setViewMode: (viewMode) => set({ viewMode }),
+    setMapVisualPreference: (mapVisualPreference) => set({ mapVisualPreference }),
     toggleLayer: (key) =>
         set((state) => ({
             layers: { ...state.layers, [key]: !state.layers[key] },

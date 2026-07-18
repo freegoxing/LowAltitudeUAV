@@ -1,4 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
+import type { MapVisualPreference } from "@/types/dashboard";
 
 import type {
     CommunicationLink,
@@ -19,11 +20,13 @@ export type PathEmphasis =
 export type RescueFlowNodeData = {
     rescueNode: RescueNode;
     dimmed: boolean;
+    visualPreference: MapVisualPreference;
 };
 
 export type CommunicationFlowEdgeData = {
     link: CommunicationLink;
     emphasis: PathEmphasis;
+    visualPreference: MapVisualPreference;
 };
 
 export type RescueFlowNode = Node<RescueFlowNodeData, "rescueNode">;
@@ -53,4 +56,5 @@ export interface TopologyAdaptOptions {
     highlightedPathId: string | null;
     primaryLinkIds: string[];
     backupLinkIds: string[];
+    mapVisualPreference: MapVisualPreference;
 }

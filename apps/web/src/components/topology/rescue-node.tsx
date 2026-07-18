@@ -44,7 +44,7 @@ export function RescueNode({ data, selected }: NodeProps<RescueFlowNode>) {
 
     return (
         <article
-            className={`${styles.node} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${node.isCritical ? styles.criticalNode : ""}`}
+            className={`${styles.node} ${data.visualPreference === "nodePriority" ? styles.nodePriority : styles.nodeMapPriority} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${node.isCritical ? styles.criticalNode : ""}`}
         >
             <Handle type="target" position={Position.Left} className={styles.handle} />
             <div className={styles.nodeHead}>

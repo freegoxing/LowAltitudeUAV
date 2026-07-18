@@ -1,11 +1,12 @@
 import { Crosshair, Filter, Focus, RotateCcw } from "lucide-react";
 
 import { useTopologyStore } from "@/stores/use-topology-store";
-import type { ViewMode } from "@/types/dashboard";
+import type { MapVisualPreference, ViewMode } from "@/types/dashboard";
 import type { LinkStatus, LinkType, NodeStatus, RescueNodeType } from "@/types/rescue";
 import styles from "./rescue-workspace.module.css";
 
 const modes: [ViewMode, string][] = [["map", "地图"], ["topology", "拓扑"], ["hybrid", "混合"]];
+const mapVisualPreferences: [MapVisualPreference, string][] = [["nodePriority", "节点优先"], ["mapPriority", "底图优先"]];
 const layers = [["nodes", "节点"], ["links", "链路"], ["tasks", "任务"], ["risks", "风险区"], ["coverage", "覆盖"]] as const;
 const nodeTypeText: Record<RescueNodeType, string> = {
     command_center: "指挥中心",
@@ -34,6 +35,20 @@ export function TopologyToolbar() {
         <header className={styles.toolbar}>
             <div className={styles.toolbarTitle}><strong>态势工作区</strong><span>{state.nodes.length} 节点 · {state.links.length} 链路</span></div>
             <div className={styles.modes} role="group" aria-label="视图模式">{modes.map(([key, label]) => <button aria-pressed={state.viewMode === key} className={state.viewMode === key ? styles.active : ""} key={key} onClick={() => state.setViewMode(key)}>{label}</button>)}</div>
+            {state.viewMode !== "topology" && (
+                <div className={styles.visualModes} role="group" aria-label="底图显示策略">
+                    {mapVisualPreferences.map(([key, label]) => (
+                        <button
+                            aria-pressed={state.mapVisualPreference === key}
+                            className={state.mapVisualPreference === key ? styles.active : ""}
+                            key={key}
+                            onClick={() => state.setMapVisualPreference(key)}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            )}
             <details className={styles.filterMenu}>
                 <summary><Filter size={13} />图层与筛选</summary>
                 <div className={styles.filterPanel}>

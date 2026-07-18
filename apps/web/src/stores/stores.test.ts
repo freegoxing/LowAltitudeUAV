@@ -34,6 +34,22 @@ test("topology layers and filters reset without changing domain data", () => {
     assert.equal(useTopologyStore.getState().links, originalLinks);
 });
 
+test("map visual preference toggles independently from view mode and layers", () => {
+    useTopologyStore.getState().setViewMode("map");
+    useTopologyStore.getState().toggleLayer("risks");
+
+    assert.equal(useTopologyStore.getState().viewMode, "map");
+    assert.equal(useTopologyStore.getState().layers.risks, true);
+
+    useTopologyStore.getState().setMapVisualPreference("mapPriority");
+    assert.equal(useTopologyStore.getState().mapVisualPreference, "mapPriority");
+    assert.equal(useTopologyStore.getState().layers.risks, true);
+
+    useTopologyStore.getState().setMapVisualPreference("nodePriority");
+    assert.equal(useTopologyStore.getState().mapVisualPreference, "nodePriority");
+    assert.equal(useTopologyStore.getState().viewMode, "map");
+});
+
 test("connection statuses update independently", () => {
     useConnectionStore.getState().setApiStatus("disconnected");
     assert.equal(useConnectionStore.getState().apiStatus, "disconnected");

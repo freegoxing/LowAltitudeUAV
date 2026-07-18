@@ -87,6 +87,7 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
                     <div className={styles.mapViewport}>
                         <MapBackground
                             muted={mode === "hybrid"}
+                            visualPreference={state.mapVisualPreference}
                             showRisks={state.layers.risks}
                             showCoverage={state.layers.coverage}
                         />
@@ -113,8 +114,9 @@ export function TopologyCanvas() {
             highlightedPathId: state.layers.tasks ? state.highlightedPathId : null,
             primaryLinkIds: mockPlanningResult.primarySubgraphLinkIds,
             backupLinkIds: mockPlanningResult.backupSubgraphLinkIds,
+            mapVisualPreference: state.mapVisualPreference,
         });
-    }, [state.nodes, state.links, state.filters, state.viewMode, state.selectedLinkId, state.highlightedPathId, state.layers.tasks, task]);
+    }, [state.nodes, state.links, state.filters, state.viewMode, state.selectedLinkId, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, task]);
     const visibleNodes = state.layers.nodes ? flow.nodes : [];
     const visibleEdges = state.layers.links ? flow.edges : [];
 

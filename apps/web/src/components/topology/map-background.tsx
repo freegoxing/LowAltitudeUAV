@@ -1,9 +1,20 @@
+import type { MapVisualPreference } from "@/types/dashboard";
 import styles from "./rescue-workspace.module.css";
 
-export function MapBackground({ muted = false, showRisks = false, showCoverage = false }: { muted?: boolean; showRisks?: boolean; showCoverage?: boolean }) {
+export function MapBackground({
+    muted = false,
+    visualPreference = "nodePriority",
+    showRisks = false,
+    showCoverage = false,
+}: {
+    muted?: boolean;
+    visualPreference?: MapVisualPreference;
+    showRisks?: boolean;
+    showCoverage?: boolean;
+}) {
     return (
         <svg
-            className={`${styles.mapBackground} ${muted ? styles.mapMuted : ""}`}
+            className={`${styles.mapBackground} ${muted ? styles.mapMuted : ""} ${visualPreference === "nodePriority" ? styles.mapBackgroundSoft : styles.mapBackgroundRich}`}
             viewBox="0 0 1000 720"
             preserveAspectRatio="none"
             aria-hidden="true"

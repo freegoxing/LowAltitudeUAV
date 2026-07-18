@@ -39,6 +39,7 @@ export function adaptTopology(
         data: {
             rescueNode: node,
             dimmed: taskNodeIds.size > 0 && !taskNodeIds.has(node.id),
+            visualPreference: options.mapVisualPreference,
         },
         draggable: true,
     }));
@@ -59,7 +60,11 @@ export function adaptTopology(
                 source: link.source,
                 target: link.target,
                 type: "communicationLink",
-                data: { link, emphasis: getEmphasis(link, options) },
+                data: {
+                    link,
+                    emphasis: getEmphasis(link, options),
+                    visualPreference: options.mapVisualPreference,
+                },
                 selectable: true,
             },
         ];
