@@ -53,7 +53,7 @@ const defaultLayers: LayerVisibility = {
 export const useTopologyStore = create<TopologyState>((set) => ({
     nodes: mockNodes,
     links: mockLinks,
-    selectedNodeId: "n-relay",
+    selectedNodeId: "UAV-R-5",
     selectedLinkId: null,
     viewMode: "hybrid",
     layers: defaultLayers,

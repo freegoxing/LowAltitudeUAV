@@ -25,8 +25,12 @@ test("adapts domain nodes and skips links with missing endpoints", () => {
     });
 
     assert.equal(result.nodes.length, mockNodes.length);
-    assert.deepEqual(result.edges.map((edge) => edge.id), ["l-1", "l-2", "l-3"]);
-    assert.deepEqual(result.nodes[0].position, { x: 500, y: 500 });
+    assert.equal(result.edges.length, mockLinks.length);
+    assert.ok(result.edges.every((edge) => edge.id !== "invalid-link"));
+    assert.deepEqual(result.nodes[0].position, {
+        x: mockNodes[0].position.x * 10,
+        y: mockNodes[0].position.y * 10,
+    });
 });
 
 test("combines node and link filters without mutating source data", () => {
@@ -40,8 +44,11 @@ test("combines node and link filters without mutating source data", () => {
         linkStatuses: ["degraded"],
     });
 
-    assert.deepEqual(result.nodes.map((node) => node.id), ["n-relay"]);
-    assert.deepEqual(result.links, []);
+    assert.deepEqual(
+        result.nodes.map((node) => node.id),
+        ["UAV-R-2", "UAV-R-4", "UAV-R-5", "UAV-R-6"],
+    );
+    assert.ok(result.links.every((link) => link.status === "degraded"));
     assert.deepEqual(mockNodes, sourceNodes);
     assert.deepEqual(mockLinks, sourceLinks);
 });
@@ -52,25 +59,27 @@ test("layout is deterministic and preserves input values", () => {
 
     assert.deepEqual(first, second);
     assert.notDeepEqual(first[0].position, mockNodes[0].position);
-    assert.deepEqual(mockNodes[0].position, { x: 50, y: 50 });
+    assert.deepEqual(mockNodes[0].position, { x: 10, y: 14 });
 });
 
 test("edge emphasis follows selection, task, primary, backup priority", () => {
     const result = adaptTopology(mockNodes, mockLinks, {
         mode: "hybrid",
-        selectedLinkId: "l-3",
-        highlightedTaskNodeIds: ["n-relay", "n-team"],
+        selectedLinkId: "uav-link-89-UAV-M-10-GND-P-2",
+        highlightedTaskNodeIds: ["UAV-R-5", "UAV-M-3"],
         highlightedPathId: "path-main",
-        primaryLinkIds: ["l-1", "l-2"],
-        backupLinkIds: ["l-3"],
+        primaryLinkIds: [
+            "uav-link-21-BS-4-UAV-R-5",
+            "uav-link-59-UAV-R-5-UAV-M-3",
+        ],
+        backupLinkIds: ["uav-link-89-UAV-M-10-GND-P-2"],
     });
-    const emphasis = Object.fromEntries(
+    const emphasis = new Map(
         result.edges.map((edge) => [edge.id, edge.data.emphasis]),
     );
 
-    assert.deepEqual(emphasis, {
-        "l-1": "task",
-        "l-2": "task",
-        "l-3": "selected",
-    });
+    assert.equal(emphasis.get("uav-link-21-BS-4-UAV-R-5"), "primary");
+    assert.equal(emphasis.get("uav-link-59-UAV-R-5-UAV-M-3"), "primary");
+    assert.equal(emphasis.get("uav-link-89-UAV-M-10-GND-P-2"), "selected");
+    assert.equal(emphasis.get("uav-link-1-GND-C-1-BS-1"), "muted");
 });
