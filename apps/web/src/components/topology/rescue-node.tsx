@@ -41,21 +41,30 @@ export function RescueNode({ data, selected }: NodeProps<RescueFlowNode>) {
     const node = data.rescueNode;
     const Icon = nodeIcons[node.type] ?? Ambulance;
     const keyStatus = node.battery != null ? `电量 ${node.battery}%` : `${node.load}% 负载`;
+    const isCompact = data.renderVariant === "compact";
 
     return (
         <article
-            className={`${styles.node} ${data.visualPreference === "nodePriority" ? styles.nodePriority : styles.nodeMapPriority} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${node.isCritical ? styles.criticalNode : ""}`}
+            className={`${styles.node} ${isCompact ? styles.nodeCompact : styles.nodeCard} ${data.visualPreference === "nodePriority" ? styles.nodePriority : styles.nodeMapPriority} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${node.isCritical ? styles.criticalNode : ""}`}
+            title={`${node.name} · ${statusText[node.status]} · ${keyStatus}`}
         >
             <Handle type="target" position={Position.Left} className={styles.handle} />
             <div className={styles.nodeHead}>
                 <span className={styles.nodeIcon}><Icon size={14} /></span>
                 <strong>{node.name}</strong>
-                {node.priority !== "normal" && <b>{node.priority}</b>}
+                {!isCompact && node.priority !== "normal" && <b>{node.priority}</b>}
             </div>
-            <div className={styles.nodeMeta}>
-                <span><i className={`${styles.statusDot} ${styles[node.status]}`} />{statusText[node.status]}</span>
-                <span>{keyStatus}</span>
-            </div>
+            {isCompact ? (
+                <span className={styles.nodeCompactStatus}>
+                    <i className={`${styles.statusDot} ${styles[node.status]}`} />
+                    {statusText[node.status]}
+                </span>
+            ) : (
+                <div className={styles.nodeMeta}>
+                    <span><i className={`${styles.statusDot} ${styles[node.status]}`} />{statusText[node.status]}</span>
+                    <span>{keyStatus}</span>
+                </div>
+            )}
             <Handle type="source" position={Position.Right} className={styles.handle} />
         </article>
     );

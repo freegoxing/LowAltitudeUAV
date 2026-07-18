@@ -21,6 +21,7 @@ export type RescueFlowNodeData = {
     rescueNode: RescueNode;
     dimmed: boolean;
     visualPreference: MapVisualPreference;
+    renderVariant: "card" | "compact";
 };
 
 export type CommunicationFlowEdgeData = {

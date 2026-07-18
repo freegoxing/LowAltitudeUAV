@@ -1,4 +1,9 @@
-import { hybridPosition, layoutTopology, mapPosition } from "@/lib/topology-layout";
+import {
+    hybridPosition,
+    layoutTopology,
+    mapPosition,
+    mapPositions,
+} from "@/lib/topology-layout";
 import type { CommunicationLink, RescueNode } from "@/types/rescue";
 import type {
     CommunicationFlowEdge,
@@ -25,6 +30,8 @@ export function adaptTopology(
 ): { nodes: RescueFlowNode[]; edges: CommunicationFlowEdge[] } {
     const positionedNodes =
         options.mode === "topology" ? layoutTopology(nodes) : nodes;
+    const mappedPositions =
+        options.mode === "map" ? mapPositions(positionedNodes) : null;
     const taskNodeIds = new Set(options.highlightedTaskNodeIds);
     const nodeIds = new Set(positionedNodes.map((node) => node.id));
     const flowNodes = positionedNodes.map((node, index): RescueFlowNode => ({
@@ -35,11 +42,12 @@ export function adaptTopology(
                 ? node.position
                 : options.mode === "hybrid"
                   ? hybridPosition(node, index)
-                  : mapPosition(node),
+                  : mappedPositions?.get(node.id) ?? mapPosition(node),
         data: {
             rescueNode: node,
             dimmed: taskNodeIds.size > 0 && !taskNodeIds.has(node.id),
             visualPreference: options.mapVisualPreference,
+            renderVariant: options.mode === "topology" ? "card" : "compact",
         },
         draggable: true,
     }));

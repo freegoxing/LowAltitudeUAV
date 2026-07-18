@@ -27,10 +27,7 @@ test("adapts domain nodes and skips links with missing endpoints", () => {
     assert.equal(result.nodes.length, mockNodes.length);
     assert.equal(result.edges.length, mockLinks.length);
     assert.ok(result.edges.every((edge) => edge.id !== "invalid-link"));
-    assert.deepEqual(result.nodes[0].position, {
-        x: mockNodes[0].position.x * 10,
-        y: mockNodes[0].position.y * 10,
-    });
+    assert.equal(result.nodes[0].data.renderVariant, "compact");
 });
 
 test("combines node and link filters without mutating source data", () => {
@@ -82,4 +79,37 @@ test("edge emphasis follows selection, task, primary, backup priority", () => {
     assert.equal(emphasis.get("uav-link-59-UAV-R-5-UAV-M-3"), "primary");
     assert.equal(emphasis.get("uav-link-89-UAV-M-10-GND-P-2"), "selected");
     assert.equal(emphasis.get("uav-link-1-GND-C-1-BS-1"), "muted");
+});
+
+test("map mode keeps nodes inside the map viewport safe area", () => {
+    const result = adaptTopology(mockNodes, mockLinks, {
+        mode: "map",
+        selectedLinkId: null,
+        highlightedTaskNodeIds: [],
+        highlightedPathId: null,
+        primaryLinkIds: [],
+        backupLinkIds: [],
+        mapVisualPreference: "mapPriority",
+    });
+    const xValues = result.nodes.map((node) => node.position.x);
+    const yValues = result.nodes.map((node) => node.position.y);
+
+    assert.ok(Math.min(...xValues) >= 48);
+    assert.ok(Math.max(...xValues) <= 912);
+    assert.ok(Math.min(...yValues) >= 56);
+    assert.ok(Math.max(...yValues) <= 664);
+});
+
+test("topology mode keeps the detailed card renderer", () => {
+    const result = adaptTopology(mockNodes, mockLinks, {
+        mode: "topology",
+        selectedLinkId: null,
+        highlightedTaskNodeIds: [],
+        highlightedPathId: null,
+        primaryLinkIds: [],
+        backupLinkIds: [],
+        mapVisualPreference: "nodePriority",
+    });
+
+    assert.equal(result.nodes[0].data.renderVariant, "card");
 });
