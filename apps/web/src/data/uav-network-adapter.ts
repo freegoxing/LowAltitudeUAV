@@ -73,13 +73,54 @@ const YINGXIU_CENTER = {
     longitude: 103.4858,
 } as const;
 
-const SCENARIO_LATITUDE_OFFSET: Record<RawUavNodeType, number> = {
-    "GND-C": 0,
-    BS: 0.002,
-    "UAV-R": -0.004,
-    "UAV-M": 0.004,
-    "GND-P": -0.006,
-    "UAV-S": 0.008,
+const SCENARIO_ANCHORS: Record<RawUavNodeType, readonly {
+    latitude: number;
+    longitude: number;
+}[]> = {
+    "GND-C": [
+        YINGXIU_CENTER,
+        { latitude: 31.0514, longitude: 103.4752 },
+    ],
+    BS: [
+        { latitude: 31.0578, longitude: 103.4912 },
+        { latitude: 31.0642, longitude: 103.5005 },
+        { latitude: 31.0676, longitude: 103.5108 },
+        { latitude: 31.0589, longitude: 103.5218 },
+    ],
+    "UAV-R": [
+        { latitude: 31.0581, longitude: 103.4914 },
+        { latitude: 31.0624, longitude: 103.4972 },
+        { latitude: 31.0641, longitude: 103.5036 },
+        { latitude: 31.0673, longitude: 103.5094 },
+        { latitude: 31.0706, longitude: 103.5158 },
+        { latitude: 31.0652, longitude: 103.4931 },
+        { latitude: 31.0573, longitude: 103.5075 },
+        { latitude: 31.0596, longitude: 103.5184 },
+    ],
+    "UAV-M": [
+        { latitude: 31.0731, longitude: 103.5092 },
+        { latitude: 31.0764, longitude: 103.5143 },
+        { latitude: 31.0712, longitude: 103.5191 },
+        { latitude: 31.0675, longitude: 103.5232 },
+        { latitude: 31.0626, longitude: 103.5182 },
+        { latitude: 31.0587, longitude: 103.5126 },
+        { latitude: 31.0694, longitude: 103.5054 },
+        { latitude: 31.0782, longitude: 103.5031 },
+        { latitude: 31.0746, longitude: 103.5228 },
+        { latitude: 31.0645, longitude: 103.5015 },
+    ],
+    "GND-P": [
+        { latitude: 31.0718, longitude: 103.5115 },
+        { latitude: 31.0681, longitude: 103.5167 },
+        { latitude: 31.0644, longitude: 103.5213 },
+        { latitude: 31.0609, longitude: 103.5078 },
+        { latitude: 31.0748, longitude: 103.5029 },
+    ],
+    "UAV-S": [
+        { latitude: 31.0791, longitude: 103.5148 },
+        { latitude: 31.0765, longitude: 103.5221 },
+        { latitude: 31.0736, longitude: 103.5175 },
+    ],
 };
 
 function statusFromNode(node: RawUavNode): NodeStatus {
@@ -156,20 +197,15 @@ function nodePosition(node: RawUavNode, indexByType: Map<RawUavNodeType, number>
     };
 }
 
-function mapScenarioPosition(
-    node: RawUavNode,
-    position: { x: number; y: number },
-) {
-    if (node.id === "GND-C-1") return YINGXIU_CENTER;
+function mapScenarioPosition(node: RawUavNode) {
+    const anchors = SCENARIO_ANCHORS[node.type];
+    const sequence = Math.max(0, Number(node.id.split("-").at(-1)) - 1);
+    const anchor = anchors[sequence % anchors.length];
+    const expansionRing = Math.floor(sequence / anchors.length);
 
     return {
-        longitude:
-            YINGXIU_CENTER.longitude +
-            (TYPE_COLUMN[node.type] - TYPE_COLUMN["GND-C"]) * 0.00065,
-        latitude:
-            YINGXIU_CENTER.latitude +
-            (position.y - 30) * 0.00035 +
-            SCENARIO_LATITUDE_OFFSET[node.type],
+        latitude: anchor.latitude + expansionRing * 0.0012,
+        longitude: anchor.longitude + expansionRing * 0.0015,
     };
 }
 
@@ -194,7 +230,7 @@ export function adaptMockUavNodes(network: RawUavNetwork): RescueNode[] {
             type: asRawUavNodeType(nodeInput.type),
         };
         const position = nodePosition(node, indexByType);
-        const scenarioPosition = mapScenarioPosition(node, position);
+        const scenarioPosition = mapScenarioPosition(node);
         const status = statusFromNode(node);
 
         return {

@@ -41,3 +41,17 @@ test("places generated rescue assets around the Yingxiu mountain rescue scene", 
     assert.ok(nodes.every((node) => node.latitude > 31.03 && node.latitude < 31.09));
     assert.ok(nodes.every((node) => node.longitude > 103.44 && node.longitude < 103.54));
 });
+
+test("distributes airborne assets across rescue corridors instead of type columns", () => {
+    const nodes = adaptMockUavNodes(rawNetwork);
+    const span = (values: number[]) => Math.max(...values) - Math.min(...values);
+    const relayDrones = nodes.filter((node) => node.type === "relay_drone");
+    const missionDrones = nodes.filter((node) => node.type === "mission_drone");
+    const rescueTeams = nodes.filter((node) => node.type === "rescue_team");
+
+    assert.ok(span(relayDrones.map((node) => node.longitude)) > 0.018);
+    assert.ok(span(relayDrones.map((node) => node.latitude)) > 0.012);
+    assert.ok(span(missionDrones.map((node) => node.longitude)) > 0.018);
+    assert.ok(span(missionDrones.map((node) => node.latitude)) > 0.012);
+    assert.ok(rescueTeams.some((node) => node.longitude > 103.5));
+});
