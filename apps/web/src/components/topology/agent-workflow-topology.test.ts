@@ -7,17 +7,17 @@ const source = readFileSync(
     "utf8",
 );
 
-test("prefers an explicitly confirmed Agent2 subgraph over the selected task fixture", () => {
+test("uses an explicitly confirmed Agent2 subgraph for topology emphasis", () => {
     assert.match(source, /useAgentWorkflowStore/);
-    assert.match(source, /plannedSubgraph \?\? taskSubgraph/);
-    assert.match(source, /keyNodeIds: activeSubgraph\?\.keyNodeIds/);
-    assert.match(source, /primaryLinkIds: activeSubgraph\?\.primaryLinkIds \?\? \[\]/);
-    assert.match(source, /backupLinkIds: activeSubgraph\?\.backupLinkIds \?\? \[\]/);
+    assert.match(source, /keyNodeIds: plannedSubgraph\?\.keyNodeIds/);
+    assert.match(source, /primaryLinkIds: plannedSubgraph\?\.primaryLinkIds \?\? \[\]/);
+    assert.match(source, /backupLinkIds: plannedSubgraph\?\.backupLinkIds \?\? \[\]/);
 });
 
-test("clears selected-task node highlights when an Agent2 subgraph is confirmed", () => {
-    assert.match(source, /const selectedTaskNodeIds = plannedSubgraph \? \[\] : \[/);
-    assert.match(source, /\.\.\.selectedTaskNodeIds/);
+test("does not highlight task nodes before an Agent2 subgraph is confirmed", () => {
+    assert.match(source, /if \(!state\.layers\.tasks \|\| !plannedSubgraph\) return \[\];/);
+    assert.doesNotMatch(source, /mockMissionSubgraphs/);
+    assert.doesNotMatch(source, /mockTasks/);
 });
 
 test("renders communication links only after a mission subgraph is confirmed", () => {

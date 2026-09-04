@@ -13,8 +13,6 @@ import {
     useReactFlow,
 } from "@xyflow/react";
 
-import { mockMissionSubgraphs } from "@/data/mock-mission-subgraphs";
-import { mockTasks } from "@/data/mock-tasks";
 import { adaptTopology, nearestHandles } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
 import { topologyGroupBounds, topologyGroups } from "@/lib/topology-layout";
@@ -131,11 +129,6 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
 export function TopologyCanvas() {
     const state = useTopologyStore();
     const plannedSubgraph = useAgentWorkflowStore((workflow) => workflow.plannedSubgraph);
-    const task = mockTasks.find((item) => item.id === state.highlightedTaskId);
-    const taskSubgraph = state.highlightedTaskId
-        ? mockMissionSubgraphs[state.highlightedTaskId]
-        : undefined;
-    const activeSubgraph = plannedSubgraph ?? taskSubgraph;
     const filtered = useMemo(
         () => filterTopology(state.nodes, state.links, state.filters),
         [state.nodes, state.links, state.filters],
@@ -149,40 +142,26 @@ export function TopologyCanvas() {
     );
     const highlightedTaskNodeIds = useMemo(
         () => {
-            if (!state.layers.tasks) return [];
-            const selectedTaskNodeIds = plannedSubgraph ? [] : [
-                ...(task?.assignedNodeIds ?? []),
-                ...(task?.targetNodeIds ?? []),
-            ];
-            const legacyTaskSubgraphNodeIds = plannedSubgraph
-                ? []
-                : [
-                    ...(taskSubgraph?.primaryNodeIds ?? []),
-                    ...(taskSubgraph?.backupNodeIds ?? []),
-                ];
+            if (!state.layers.tasks || !plannedSubgraph) return [];
             return [
-                ...selectedTaskNodeIds,
-                ...(activeSubgraph?.keyNodeIds ?? []),
-                ...legacyTaskSubgraphNodeIds,
-                ...state.links
-                    .filter((link) => activeSubgraph?.primaryLinkIds.includes(link.id) || activeSubgraph?.backupLinkIds.includes(link.id))
-                    .flatMap((link) => [link.source, link.target]),
+                ...plannedSubgraph.keyNodeIds,
+                ...plannedLinks.flatMap((link) => [link.source, link.target]),
             ];
         },
-        [activeSubgraph, plannedSubgraph, state.layers.tasks, state.links, task, taskSubgraph],
+        [plannedLinks, plannedSubgraph, state.layers.tasks],
     );
     const flow = useMemo(() => {
         return adaptTopology(filtered.nodes, plannedLinks, {
             mode: state.viewMode,
             selectedLinkId: state.selectedLinkId,
             highlightedTaskNodeIds,
-            highlightedPathId: state.layers.tasks && !plannedSubgraph ? state.highlightedPathId : null,
-            keyNodeIds: activeSubgraph?.keyNodeIds,
-            primaryLinkIds: activeSubgraph?.primaryLinkIds ?? [],
-            backupLinkIds: activeSubgraph?.backupLinkIds ?? [],
+            highlightedPathId: null,
+            keyNodeIds: plannedSubgraph?.keyNodeIds,
+            primaryLinkIds: plannedSubgraph?.primaryLinkIds ?? [],
+            backupLinkIds: plannedSubgraph?.backupLinkIds ?? [],
             mapVisualPreference: state.mapVisualPreference,
         });
-    }, [activeSubgraph, filtered.nodes, highlightedTaskNodeIds, plannedLinks, plannedSubgraph, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, state.selectedLinkId, state.viewMode]);
+    }, [filtered.nodes, highlightedTaskNodeIds, plannedLinks, plannedSubgraph, state.mapVisualPreference, state.selectedLinkId, state.viewMode]);
     const visibleNodes = state.layers.nodes ? flow.nodes : [];
     const visibleEdges = state.layers.links ? flow.edges : [];
 
@@ -191,16 +170,16 @@ export function TopologyCanvas() {
             {state.viewMode !== "topology" ? (
                 <RescueMap
                     centerRevision={state.centerRevision}
-                    highlightedPathId={state.layers.tasks && !plannedSubgraph ? state.highlightedPathId : null}
+                    highlightedPathId={null}
                     highlightedTaskNodeIds={highlightedTaskNodeIds}
-                    keyNodeIds={activeSubgraph?.keyNodeIds ?? []}
+                    keyNodeIds={plannedSubgraph?.keyNodeIds ?? []}
                     layers={state.layers}
                     links={plannedLinks}
                     mapVisualPreference={state.mapVisualPreference}
                     mode={state.viewMode}
                     nodes={filtered.nodes}
-                    primaryLinkIds={activeSubgraph?.primaryLinkIds ?? []}
-                    backupLinkIds={activeSubgraph?.backupLinkIds ?? []}
+                    primaryLinkIds={plannedSubgraph?.primaryLinkIds ?? []}
+                    backupLinkIds={plannedSubgraph?.backupLinkIds ?? []}
                     onClearSelection={state.clearSelection}
                     onMoveNode={state.updateNodeLocation}
                     onSelectLink={state.selectLink}
