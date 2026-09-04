@@ -140,6 +140,13 @@ export function TopologyCanvas() {
         () => filterTopology(state.nodes, state.links, state.filters),
         [state.nodes, state.links, state.filters],
     );
+    const plannedLinks = useMemo(
+        () => plannedSubgraph ? filtered.links.filter((link) => (
+            plannedSubgraph.primaryLinkIds.includes(link.id)
+            || plannedSubgraph.backupLinkIds.includes(link.id)
+        )) : [],
+        [filtered.links, plannedSubgraph],
+    );
     const highlightedTaskNodeIds = useMemo(
         () => {
             if (!state.layers.tasks) return [];
@@ -165,7 +172,7 @@ export function TopologyCanvas() {
         [activeSubgraph, plannedSubgraph, state.layers.tasks, state.links, task, taskSubgraph],
     );
     const flow = useMemo(() => {
-        return adaptTopology(filtered.nodes, filtered.links, {
+        return adaptTopology(filtered.nodes, plannedLinks, {
             mode: state.viewMode,
             selectedLinkId: state.selectedLinkId,
             highlightedTaskNodeIds,
@@ -175,7 +182,7 @@ export function TopologyCanvas() {
             backupLinkIds: activeSubgraph?.backupLinkIds ?? [],
             mapVisualPreference: state.mapVisualPreference,
         });
-    }, [activeSubgraph, filtered, highlightedTaskNodeIds, plannedSubgraph, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, state.selectedLinkId, state.viewMode]);
+    }, [activeSubgraph, filtered.nodes, highlightedTaskNodeIds, plannedLinks, plannedSubgraph, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, state.selectedLinkId, state.viewMode]);
     const visibleNodes = state.layers.nodes ? flow.nodes : [];
     const visibleEdges = state.layers.links ? flow.edges : [];
 
@@ -188,7 +195,7 @@ export function TopologyCanvas() {
                     highlightedTaskNodeIds={highlightedTaskNodeIds}
                     keyNodeIds={activeSubgraph?.keyNodeIds ?? []}
                     layers={state.layers}
-                    links={filtered.links}
+                    links={plannedLinks}
                     mapVisualPreference={state.mapVisualPreference}
                     mode={state.viewMode}
                     nodes={filtered.nodes}
