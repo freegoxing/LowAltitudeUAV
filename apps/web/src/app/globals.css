@@ -1,3 +1,5 @@
+@import "leaflet/dist/leaflet.css";
+
 :root { color-scheme: light; --background:#f5f7fa; --surface:#fff; --surface-secondary:#f8fafc; --surface-muted:#eef2f6; --border:#dfe5ec; --border-strong:#cbd5e1; --text-primary:#172033; --text-secondary:#5f6b7a; --text-muted:#8b96a5; --primary:#2563eb; --primary-light:#e8f0ff; --success:#16875f; --success-light:#e8f7f0; --warning:#c67a12; --warning-light:#fff7e6; --danger:#cf4545; --danger-light:#fff0f0; }
 * { box-sizing:border-box; margin:0; padding:0; }
 html, body { width:100%; height:100%; overflow:hidden; }
@@ -6,4 +8,3 @@ button { color:inherit; font:inherit; }
 button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-thumb { border-radius:999px; background:var(--border-strong); }
-@import "leaflet/dist/leaflet.css";

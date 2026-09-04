@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
 import {
     Background,
     BackgroundVariant,
     Controls,
     ReactFlow,
-    ViewportPortal,
     useEdgesState,
     useNodesState,
     useReactFlow,
@@ -20,7 +20,7 @@ import { useTopologyStore } from "@/stores/use-topology-store";
 import type { ViewMode } from "@/types/dashboard";
 import type { CommunicationFlowEdge, RescueFlowNode } from "@/types/topology";
 import { CommunicationEdge } from "./communication-edge";
-import { MapBackground } from "./map-background";
+import type { RescueMapProps } from "./rescue-map";
 import { RescueNode } from "./rescue-node";
 import { TopologyLegend } from "./topology-legend";
 import styles from "./rescue-workspace.module.css";
@@ -28,6 +28,10 @@ import styles from "./rescue-workspace.module.css";
 const nodeTypes = { rescueNode: RescueNode };
 const edgeTypes = { communicationLink: CommunicationEdge };
 const fitOptions = { padding: 0.22, maxZoom: 1.35 };
+const RescueMap = dynamic<RescueMapProps>(
+    () => import("./rescue-map").then((module) => module.RescueMap),
+    { ssr: false },
+);
 
 interface SceneProps {
     incomingNodes: RescueFlowNode[];
@@ -82,18 +86,6 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
             proOptions={{ hideAttribution: true }}
             colorMode="light"
         >
-            <ViewportPortal>
-                {mode !== "topology" && (
-                    <div className={styles.mapViewport}>
-                        <MapBackground
-                            muted={mode === "hybrid"}
-                            visualPreference={state.mapVisualPreference}
-                            showRisks={state.layers.risks}
-                            showCoverage={state.layers.coverage}
-                        />
-                    </div>
-                )}
-            </ViewportPortal>
             {mode === "topology" && <Background color="#dfe5ec" gap={24} size={1} variant={BackgroundVariant.Dots} />}
             <Controls position="bottom-right" showInteractive={false} />
         </ReactFlow>
@@ -103,33 +95,58 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
 export function TopologyCanvas() {
     const state = useTopologyStore();
     const task = mockTasks.find((item) => item.id === state.highlightedTaskId);
+    const filtered = useMemo(
+        () => filterTopology(state.nodes, state.links, state.filters),
+        [state.nodes, state.links, state.filters],
+    );
+    const highlightedTaskNodeIds = useMemo(
+        () => state.layers.tasks
+            ? [...(task?.assignedNodeIds ?? []), ...(task?.targetNodeIds ?? [])]
+            : [],
+        [state.layers.tasks, task],
+    );
     const flow = useMemo(() => {
-        const filtered = filterTopology(state.nodes, state.links, state.filters);
         return adaptTopology(filtered.nodes, filtered.links, {
             mode: state.viewMode,
             selectedLinkId: state.selectedLinkId,
-            highlightedTaskNodeIds: state.layers.tasks
-                ? [...(task?.assignedNodeIds ?? []), ...(task?.targetNodeIds ?? [])]
-                : [],
+            highlightedTaskNodeIds,
             highlightedPathId: state.layers.tasks ? state.highlightedPathId : null,
             primaryLinkIds: mockPlanningResult.primarySubgraphLinkIds,
             backupLinkIds: mockPlanningResult.backupSubgraphLinkIds,
             mapVisualPreference: state.mapVisualPreference,
         });
-    }, [state.nodes, state.links, state.filters, state.viewMode, state.selectedLinkId, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, task]);
+    }, [filtered, highlightedTaskNodeIds, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, state.selectedLinkId, state.viewMode]);
     const visibleNodes = state.layers.nodes ? flow.nodes : [];
     const visibleEdges = state.layers.links ? flow.edges : [];
 
     return (
         <div className={styles.canvas}>
-            <TopologyScene
-                incomingNodes={visibleNodes}
-                incomingEdges={visibleEdges}
-                mode={state.viewMode}
-                viewRevision={state.viewRevision}
-                centerRevision={state.centerRevision}
-            />
-            {!visibleNodes.length && (
+            {state.viewMode === "map" ? (
+                <RescueMap
+                    centerRevision={state.centerRevision}
+                    highlightedPathId={state.layers.tasks ? state.highlightedPathId : null}
+                    highlightedTaskNodeIds={highlightedTaskNodeIds}
+                    layers={state.layers}
+                    links={filtered.links}
+                    mapVisualPreference={state.mapVisualPreference}
+                    nodes={filtered.nodes}
+                    onClearSelection={state.clearSelection}
+                    onSelectLink={state.selectLink}
+                    onSelectNode={state.selectNode}
+                    selectedLinkId={state.selectedLinkId}
+                    selectedNodeId={state.selectedNodeId}
+                    viewRevision={state.viewRevision}
+                />
+            ) : (
+                <TopologyScene
+                    centerRevision={state.centerRevision}
+                    incomingEdges={visibleEdges}
+                    incomingNodes={visibleNodes}
+                    mode={state.viewMode}
+                    viewRevision={state.viewRevision}
+                />
+            )}
+            {!(state.viewMode === "map" ? filtered.nodes.length : visibleNodes.length) && (
                 <div className={styles.emptyState}>
                     <strong>{state.nodes.length ? "当前筛选下无可见节点" : "当前场景暂无节点"}</strong>
                     {state.nodes.length > 0 && <button onClick={state.resetFilters}>清除筛选</button>}

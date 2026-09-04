@@ -10,6 +10,10 @@ const layoutStyles = readFileSync(
     new URL("../layout/workspace-layout.module.css", import.meta.url),
     "utf8",
 );
+const canvasSource = readFileSync(
+    new URL("./topology-canvas.tsx", import.meta.url),
+    "utf8",
+);
 
 test("passes the center grid height through to the React Flow canvas", () => {
     assert.match(
@@ -23,12 +27,11 @@ test("passes the center grid height through to the React Flow canvas", () => {
     );
 });
 
-test("keeps map background behind nodes and exposes visual preference styles", () => {
-    assert.match(
-        workspaceStyles,
-        /\.react-flow__viewport-portal\)\s*{\s*z-index:0;/,
-    );
+test("renders the dedicated map surface while retaining React Flow for other modes", () => {
+    assert.match(canvasSource, /dynamic\(\(\) => import\("\.\/rescue-map"\)/);
+    assert.match(canvasSource, /state\.viewMode === "map" \? \(/);
+    assert.match(canvasSource, /<RescueMap/);
+    assert.doesNotMatch(canvasSource, /MapBackground/);
     assert.match(workspaceStyles, /\.nodePriority\s*{[^}]*box-shadow:/);
-    assert.match(workspaceStyles, /\.mapBackgroundSoft\s*{[^}]*opacity:/);
     assert.match(workspaceStyles, /\.visualModes\s*{[^}]*display:flex/);
 });
