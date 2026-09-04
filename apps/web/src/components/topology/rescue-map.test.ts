@@ -24,4 +24,8 @@ test("uses OSM tiles with visible attribution and an Yingxiu initial view", () =
     assert.match(mapSource, /31\.0607/);
     assert.match(mapSource, /103\.4858/);
     assert.match(mapSource, /ScaleControl/);
+    assert.match(mapSource, /draggable/);
+    assert.match(mapSource, /wheelPxPerZoomLevel=\{160\}/);
+    assert.match(mapSource, /zoomSnap=\{0\.25\}/);
+    assert.match(mapSource, /onMoveNode/);
 });

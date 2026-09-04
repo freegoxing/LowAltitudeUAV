@@ -121,7 +121,7 @@ export function TopologyCanvas() {
 
     return (
         <div className={styles.canvas}>
-            {state.viewMode === "map" ? (
+            {state.viewMode !== "topology" ? (
                 <RescueMap
                     centerRevision={state.centerRevision}
                     highlightedPathId={state.layers.tasks ? state.highlightedPathId : null}
@@ -131,6 +131,7 @@ export function TopologyCanvas() {
                     mapVisualPreference={state.mapVisualPreference}
                     nodes={filtered.nodes}
                     onClearSelection={state.clearSelection}
+                    onMoveNode={state.updateNodeLocation}
                     onSelectLink={state.selectLink}
                     onSelectNode={state.selectNode}
                     selectedLinkId={state.selectedLinkId}
@@ -146,7 +147,7 @@ export function TopologyCanvas() {
                     viewRevision={state.viewRevision}
                 />
             )}
-            {!(state.viewMode === "map" ? filtered.nodes.length : visibleNodes.length) && (
+            {!(state.viewMode !== "topology" ? filtered.nodes.length : visibleNodes.length) && (
                 <div className={styles.emptyState}>
                     <strong>{state.nodes.length ? "当前筛选下无可见节点" : "当前场景暂无节点"}</strong>
                     {state.nodes.length > 0 && <button onClick={state.resetFilters}>清除筛选</button>}

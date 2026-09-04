@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { divIcon, type PathOptions } from "leaflet";
+import { divIcon, type Marker as LeafletMarker, type PathOptions } from "leaflet";
 import {
     Circle,
     MapContainer,
@@ -97,6 +97,7 @@ export interface RescueMapProps {
     viewRevision: number;
     onSelectNode: (id: string) => void;
     onSelectLink: (id: string) => void;
+    onMoveNode: (id: string, latitude: number, longitude: number) => void;
     onClearSelection: () => void;
 }
 
@@ -113,6 +114,7 @@ export function RescueMap({
     viewRevision,
     onSelectNode,
     onSelectLink,
+    onMoveNode,
     onClearSelection,
 }: RescueMapProps) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
@@ -127,6 +129,9 @@ export function RescueMap({
             minZoom={10}
             maxZoom={18}
             scrollWheelZoom
+            wheelPxPerZoomLevel={160}
+            zoomDelta={0.25}
+            zoomSnap={0.25}
         >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -182,7 +187,14 @@ export function RescueMap({
 
             {layers.nodes && nodes.map((node) => (
                 <Marker
-                    eventHandlers={{ click: () => onSelectNode(node.id) }}
+                    draggable
+                    eventHandlers={{
+                        click: () => onSelectNode(node.id),
+                        dragend: (event) => {
+                            const location = (event.target as LeafletMarker).getLatLng();
+                            onMoveNode(node.id, location.lat, location.lng);
+                        },
+                    }}
                     icon={markerIcon(node, selectedNodeId === node.id, taskNodeIds.has(node.id))}
                     key={node.id}
                     position={[node.latitude, node.longitude]}

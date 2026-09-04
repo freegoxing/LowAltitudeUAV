@@ -30,6 +30,7 @@ test("passes the center grid height through to the React Flow canvas", () => {
 test("renders the dedicated map surface while retaining React Flow for other modes", () => {
     assert.match(canvasSource, /dynamic\(\(\) => import\("\.\/rescue-map"\)/);
     assert.match(canvasSource, /state\.viewMode === "map" \? \(/);
+    assert.match(canvasSource, /state\.viewMode !== "topology" \? \(/);
     assert.match(canvasSource, /<RescueMap/);
     assert.doesNotMatch(canvasSource, /MapBackground/);
     assert.match(workspaceStyles, /\.nodePriority\s*{[^}]*box-shadow:/);

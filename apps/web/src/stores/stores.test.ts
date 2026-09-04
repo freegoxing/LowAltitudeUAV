@@ -55,3 +55,21 @@ test("connection statuses update independently", () => {
     assert.equal(useConnectionStore.getState().apiStatus, "disconnected");
     assert.equal(useConnectionStore.getState().websocketStatus, "connected");
 });
+
+test("map drag persists a node's geographic location without changing its topology position", () => {
+    const node = useTopologyStore.getState().nodes[0];
+    const originalLocation = [node.latitude, node.longitude];
+    const originalPosition = node.position;
+
+    useTopologyStore.getState().updateNodeLocation(node.id, 31.0612, 103.4864);
+
+    const movedNode = useTopologyStore.getState().nodes[0];
+    assert.deepEqual([movedNode.latitude, movedNode.longitude], [31.0612, 103.4864]);
+    assert.equal(movedNode.position, originalPosition);
+
+    useTopologyStore.getState().updateNodeLocation(
+        node.id,
+        originalLocation[0],
+        originalLocation[1],
+    );
+});

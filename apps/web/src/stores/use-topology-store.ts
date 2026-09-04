@@ -35,6 +35,7 @@ interface TopologyState {
     selectLink: (id: string) => void;
     clearSelection: () => void;
     setViewMode: (mode: ViewMode) => void;
+    updateNodeLocation: (id: string, latitude: number, longitude: number) => void;
     setMapVisualPreference: (preference: MapVisualPreference) => void;
     toggleLayer: (key: keyof LayerVisibility) => void;
     setNodeTypes: (types: RescueNodeType[]) => void;
@@ -73,6 +74,12 @@ export const useTopologyStore = create<TopologyState>((set) => ({
     selectLink: (selectedLinkId) => set({ selectedLinkId, selectedNodeId: null }),
     clearSelection: () => set({ selectedNodeId: null, selectedLinkId: null }),
     setViewMode: (viewMode) => set({ viewMode }),
+    updateNodeLocation: (id, latitude, longitude) =>
+        set((state) => ({
+            nodes: state.nodes.map((node) =>
+                node.id === id ? { ...node, latitude, longitude } : node,
+            ),
+        })),
     setMapVisualPreference: (mapVisualPreference) => set({ mapVisualPreference }),
     toggleLayer: (key) =>
         set((state) => ({
