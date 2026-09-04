@@ -5,5 +5,5 @@ import { AgentWorkflowPanel } from "@/components/agent-workflow/agent-workflow-p
 import styles from "./workspace-layout.module.css";
 
 export function RightSidebar() {
-    return <aside className={styles.right}><SelectionDetail /><AgentWorkflowPanel /><PlanningSummary /><AlertList /></aside>;
+    return <aside className={styles.right}><SelectionDetail /><div className={styles.agentWorkflow}><AgentWorkflowPanel /></div><PlanningSummary /><AlertList /></aside>;
 }

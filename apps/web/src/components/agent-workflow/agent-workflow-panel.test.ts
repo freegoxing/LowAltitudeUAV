@@ -14,6 +14,14 @@ const planningSummarySource = readFileSync(
     new URL("../details/planning-summary.tsx", import.meta.url),
     "utf8",
 );
+const layoutStyles = readFileSync(
+    new URL("../layout/workspace-layout.module.css", import.meta.url),
+    "utf8",
+);
+const workflowStyles = readFileSync(
+    new URL("./agent-workflow.module.css", import.meta.url),
+    "utf8",
+);
 
 test("keeps topology planning behind an explicit MCS confirmation control", () => {
     assert.match(panelSource, /生成任务通信规范/);
@@ -31,4 +39,11 @@ test("mounts the agent workflow above planning details in the right sidebar", ()
 test("identifies an Agent2-confirmed subgraph in the planning summary", () => {
     assert.match(planningSummarySource, /useAgentWorkflowStore/);
     assert.match(planningSummarySource, /Agent2 已确认/);
+});
+
+test("keeps planning cards reachable by giving the agent panel a bounded scroll region", () => {
+    assert.match(layoutStyles, /\.right\s*{[^}]*grid-template-rows:\s*auto minmax\(0,1fr\) auto auto[^}]*overflow:hidden[^}]*}/);
+    assert.match(layoutStyles, /\.agentWorkflow\s*{[^}]*min-height:0[^}]*}/);
+    assert.match(workflowStyles, /\.card\s*{[^}]*min-height:0[^}]*grid-template-rows:.*minmax\(0,1fr\)/);
+    assert.match(workflowStyles, /\.body\s*{[^}]*min-height:0[^}]*overflow-y:auto/);
 });
