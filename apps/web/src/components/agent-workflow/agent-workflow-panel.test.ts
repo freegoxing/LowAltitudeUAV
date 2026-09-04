@@ -30,6 +30,7 @@ test("keeps topology planning behind an explicit MCS confirmation control", () =
     assert.match(panelSource, /confirmMission/);
     assert.match(panelSource, /Agent1 态势感知/);
     assert.match(panelSource, /Agent2 对话与任务翻译/);
+    assert.match(panelSource, /AI 接口预留/);
 });
 
 test("mounts the agent workflow above planning details in the right sidebar", () => {

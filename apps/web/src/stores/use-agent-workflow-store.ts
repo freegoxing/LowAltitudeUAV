@@ -5,11 +5,12 @@ import { mockNodes } from "@/data/mock-nodes";
 import {
     createAgentWorkflowDraft,
     planMissionSubgraph,
+    presetMissionPrompt,
     type AgentWorkflowDraft,
     type PlannedTaskSubgraph,
 } from "@/lib/agent-workflow";
 
-type WorkflowPhase = "idle" | "review" | "planned";
+type WorkflowPhase = "idle" | "awaiting_ai" | "review" | "planned";
 
 interface AgentWorkflowState {
     phase: WorkflowPhase;
@@ -24,11 +25,15 @@ export const useAgentWorkflowStore = create<AgentWorkflowState>((set) => ({
     phase: "idle",
     draft: null,
     plannedSubgraph: null,
-    submitMessage: (message) => set({
-        phase: "review",
-        draft: createAgentWorkflowDraft(message, mockNodes),
-        plannedSubgraph: null,
-    }),
+    submitMessage: (message) => set(
+        message.trim() === presetMissionPrompt
+            ? {
+                phase: "review",
+                draft: createAgentWorkflowDraft(message, mockNodes),
+                plannedSubgraph: null,
+            }
+            : { phase: "awaiting_ai", draft: null, plannedSubgraph: null },
+    ),
     confirmMission: () => set((state) => {
         if (!state.draft) return state;
         return {

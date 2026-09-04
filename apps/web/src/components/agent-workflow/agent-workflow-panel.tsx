@@ -8,9 +8,8 @@ import { PanelCard } from "@/components/ui/panel-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useAgentWorkflowStore } from "@/stores/use-agent-workflow-store";
+import { presetMissionPrompt } from "@/lib/agent-workflow";
 import styles from "./agent-workflow.module.css";
-
-const initialMessage = "立即搜救，重点保障医疗组并保持通信稳定";
 
 function nodeName(nodeId: string) {
     return mockNodes.find((node) => node.id === nodeId)?.name ?? nodeId;
@@ -22,7 +21,7 @@ export function AgentWorkflowPanel() {
     const plannedSubgraph = useAgentWorkflowStore((state) => state.plannedSubgraph);
     const submitMessage = useAgentWorkflowStore((state) => state.submitMessage);
     const confirmMission = useAgentWorkflowStore((state) => state.confirmMission);
-    const [message, setMessage] = useState(initialMessage);
+    const [message, setMessage] = useState(presetMissionPrompt);
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -32,7 +31,7 @@ export function AgentWorkflowPanel() {
 
     return (
         <PanelCard className={styles.card}>
-            <SectionHeader title="智能体协同" meta={phase === "planned" ? "已规划" : "待研判"} />
+            <SectionHeader title="智能体协同" meta={phase === "planned" ? "已规划" : phase === "awaiting_ai" ? "AI 接口预留" : "待研判"} />
             <div className={styles.body}>
                 <section className={styles.agentSection}>
                     <div className={styles.label}><Sparkles size={13} /><strong>Agent1 态势感知</strong></div>
@@ -44,7 +43,7 @@ export function AgentWorkflowPanel() {
                             </div>
                             <p>{draft.assessment.summary}</p>
                         </div>
-                    ) : <p className={styles.hint}>发送指令后，Agent1 将基于当前网络态势生成任务等级与风险研判。</p>}
+                    ) : <p className={styles.hint}>{phase === "awaiting_ai" ? "该指令已接收，等待后续 AI 服务接入后生成态势研判。" : "发送预设指令后，Agent1 将展示演示用态势研判。"}</p>}
                 </section>
 
                 <section className={styles.agentSection}>
@@ -59,6 +58,8 @@ export function AgentWorkflowPanel() {
                         <button disabled={!message.trim()} type="submit"><Send size={13} />生成任务通信规范</button>
                     </form>
                 </section>
+
+                {phase === "awaiting_ai" && <div className={styles.reserved}>AI 接口预留：非预设问题暂不生成 MCS 或路径规划。</div>}
 
                 {draft && (
                     <section className={styles.agentSection}>

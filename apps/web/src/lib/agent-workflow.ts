@@ -45,6 +45,8 @@ export interface AgentWorkflowDraft {
     mcs: MissionCommunicationSpecification;
 }
 
+export const presetMissionPrompt = "立即搜救，重点保障医疗组并保持通信稳定";
+
 const keyNodeIds = ["UAV-S-1", "GND-P-1", "UAV-M-3", "GND-C-1"];
 function physicalLinkKey(link: CommunicationLink) {
     return [link.source, link.target].sort().join("|");
