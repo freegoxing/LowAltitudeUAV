@@ -68,6 +68,20 @@ const TYPE_COLUMN: Record<RawUavNodeType, number> = {
     "UAV-S": 58,
 };
 
+const YINGXIU_CENTER = {
+    latitude: 31.0607,
+    longitude: 103.4858,
+} as const;
+
+const SCENARIO_LATITUDE_OFFSET: Record<RawUavNodeType, number> = {
+    "GND-C": 0,
+    BS: 0.002,
+    "UAV-R": -0.004,
+    "UAV-M": 0.004,
+    "GND-P": -0.006,
+    "UAV-S": 0.008,
+};
+
 function statusFromNode(node: RawUavNode): NodeStatus {
     const snr = Math.min(node.snr_uplink, node.snr_downlink);
     if (node.battery < 0.48 || snr < 7) return "warning";
@@ -142,6 +156,23 @@ function nodePosition(node: RawUavNode, indexByType: Map<RawUavNodeType, number>
     };
 }
 
+function mapScenarioPosition(
+    node: RawUavNode,
+    position: { x: number; y: number },
+) {
+    if (node.id === "GND-C-1") return YINGXIU_CENTER;
+
+    return {
+        longitude:
+            YINGXIU_CENTER.longitude +
+            (TYPE_COLUMN[node.type] - TYPE_COLUMN["GND-C"]) * 0.00065,
+        latitude:
+            YINGXIU_CENTER.latitude +
+            (position.y - 30) * 0.00035 +
+            SCENARIO_LATITUDE_OFFSET[node.type],
+    };
+}
+
 export function adaptMockUavNodes(network: RawUavNetwork): RescueNode[] {
     const indexByType = new Map<RawUavNodeType, number>();
     const connectedNodeIdsByNode = new Map<string, Set<string>>();
@@ -163,6 +194,7 @@ export function adaptMockUavNodes(network: RawUavNetwork): RescueNode[] {
             type: asRawUavNodeType(nodeInput.type),
         };
         const position = nodePosition(node, indexByType);
+        const scenarioPosition = mapScenarioPosition(node, position);
         const status = statusFromNode(node);
 
         return {
@@ -172,8 +204,8 @@ export function adaptMockUavNodes(network: RawUavNetwork): RescueNode[] {
             status,
             priority: priorityFromNode(node),
             position,
-            longitude: 116.18 + TYPE_COLUMN[node.type] / 250,
-            latitude: 40.04 + (position.y % 70) / 500,
+            longitude: scenarioPosition.longitude,
+            latitude: scenarioPosition.latitude,
             altitude: node.type.startsWith("UAV") ? 180 + node.capacity * 4 : undefined,
             battery: Math.round(node.battery * 100),
             signalStrength: signalStrengthFromSnr(node.snr_uplink),

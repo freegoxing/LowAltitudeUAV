@@ -29,3 +29,15 @@ test("loads generated UAV communication edges with valid endpoints", () => {
     assert.ok(links.every((link) => nodeIds.has(link.target)));
     assert.ok(links.some((link) => link.status === "interrupted"));
 });
+
+test("places generated rescue assets around the Yingxiu mountain rescue scene", () => {
+    const nodes = adaptMockUavNodes(rawNetwork);
+    const commandVehicle = nodes.find((node) => node.id === "GND-C-1");
+
+    assert.deepEqual(
+        [commandVehicle?.latitude, commandVehicle?.longitude],
+        [31.0607, 103.4858],
+    );
+    assert.ok(nodes.every((node) => node.latitude > 31.03 && node.latitude < 31.09));
+    assert.ok(nodes.every((node) => node.longitude > 103.44 && node.longitude < 103.54));
+});
