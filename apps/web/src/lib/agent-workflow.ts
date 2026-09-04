@@ -1,4 +1,5 @@
 import type { CommunicationLink, RescueNode } from "@/types/rescue";
+import presetPlannerOutput from "@/data/generated-task-communication-subgraph.json";
 
 export type SituationLevel = "L1" | "L2" | "L3";
 
@@ -37,6 +38,7 @@ export interface PlannedTaskSubgraph {
     keyNodeIds: string[];
     primaryLinkIds: string[];
     backupLinkIds: string[];
+    links: CommunicationLink[];
 }
 
 export interface AgentWorkflowDraft {
@@ -47,47 +49,38 @@ export interface AgentWorkflowDraft {
 
 export const presetMissionPrompt = "立即搜救，重点保障医疗组并保持通信稳定";
 
-const keyNodeIds = ["UAV-S-1", "GND-P-1", "UAV-M-3", "GND-C-1"];
-function physicalLinkKey(link: CommunicationLink) {
-    return [link.source, link.target].sort().join("|");
+function latencyMs(value: string) {
+    const parsed = Number.parseFloat(value);
+    return value.includes("s") && !value.includes("ms") ? parsed * 1000 : parsed;
 }
 
-function shortestPathLinkIds(
-    source: string,
-    target: string,
-    links: CommunicationLink[],
-    blockedPhysicalLinks = new Set<string>(),
+function plannedLinksForPaths(
+    paths: string[][],
+    pathType: "primary" | "backup",
+    availableLinks: CommunicationLink[],
 ) {
-    const queue: Array<{ nodeId: string; pathLinkIds: string[] }> = [{
-        nodeId: source,
-        pathLinkIds: [],
-    }];
-    const visited = new Set([source]);
-
-    while (queue.length) {
-        const current = queue.shift()!;
-        if (current.nodeId === target) return current.pathLinkIds;
-
-        for (const link of links) {
-            if (
-                blockedPhysicalLinks.has(physicalLinkKey(link))
-                || (link.source !== current.nodeId && link.target !== current.nodeId)
-            ) continue;
-            const nextNodeId = link.source === current.nodeId ? link.target : link.source;
-            if (visited.has(nextNodeId)) continue;
-            visited.add(nextNodeId);
-            queue.push({
-                nodeId: nextNodeId,
-                pathLinkIds: [...current.pathLinkIds, link.id],
-            });
-        }
-    }
-
-    return [];
-}
-
-function unique(ids: string[]) {
-    return [...new Set(ids)];
+    return paths.flatMap((path, pathIndex) => path.slice(1).map((target, hopIndex) => {
+        const source = path[hopIndex];
+        const existing = availableLinks.find((link) => (
+            (link.source === source && link.target === target)
+            || (link.source === target && link.target === source)
+        ));
+        return {
+            id: `preset-${pathType}-${pathIndex}-${hopIndex}-${source}-${target}`,
+            source,
+            target,
+            type: pathType,
+            status: existing?.status ?? "normal",
+            priority: pathType === "primary" ? "critical" : "high",
+            bandwidth: existing?.bandwidth ?? 24,
+            latency: existing?.latency ?? 36,
+            packetLoss: existing?.packetLoss ?? 0.6,
+            signalStrength: existing?.signalStrength ?? -68,
+            load: existing?.load ?? 42,
+            isBackup: pathType === "backup",
+            isCritical: pathType === "primary",
+        } satisfies CommunicationLink;
+    }));
 }
 
 export function createAgentWorkflowDraft(
@@ -95,7 +88,6 @@ export function createAgentWorkflowDraft(
     nodes: RescueNode[],
 ): AgentWorkflowDraft {
     const availableNodeIds = new Set(nodes.map((node) => node.id));
-    const hasMedicalFocus = /医疗|救护|急救/.test(message);
     const assessment: Agent1Assessment = {
         level: "L1",
         risk: "高",
@@ -108,45 +100,23 @@ export function createAgentWorkflowDraft(
         message,
         assessment,
         mcs: {
-            missionId: "MCS-SAR-NORTH-01",
+            missionId: presetPlannerOutput.mission.mission_id,
             missionType: "人员搜救",
             missionPriority: "P0",
-            keyNodeIds: keyNodeIds.filter((id) => availableNodeIds.has(id)),
-            flows: [
-                {
-                    id: "flow-search-guidance",
-                    source: "UAV-S-1",
-                    receivers: ["GND-P-1"],
-                    purpose: "搜救引导",
-                    priority: 5,
-                    latencyMs: 80,
-                    reliability: 0.99,
-                    deliveryMode: "anycast",
-                },
-                {
-                    id: "flow-medical-collaboration",
-                    source: "UAV-S-1",
-                    receivers: hasMedicalFocus ? ["UAV-M-3", "GND-P-1"] : ["GND-P-1"],
-                    purpose: "医疗协同",
-                    priority: hasMedicalFocus ? 5 : 4,
-                    latencyMs: 120,
-                    reliability: 0.98,
-                    deliveryMode: "multicast",
-                },
-                {
-                    id: "flow-command-summary",
-                    source: "UAV-S-1",
-                    receivers: ["GND-C-1"],
-                    purpose: "态势同步",
-                    priority: 3,
-                    latencyMs: 300,
-                    reliability: 0.95,
-                    deliveryMode: "unicast",
-                },
-            ],
-            resourceBudget: "语义带宽占用不超过 65%，最多启用 2 架中继无人机。",
-            backupRequirement: "P0 业务流至少保留 1 条节点隔离备路径。",
-            healingPolicy: "主链路 SNR 持续低于阈值时，在 150 ms 内切换备路径。",
+            keyNodeIds: presetPlannerOutput.mission.key_nodes.filter((id) => availableNodeIds.has(id)),
+            flows: presetPlannerOutput.mission.mission_flows.map((flow) => ({
+                id: flow.flow_id,
+                source: flow.source,
+                receivers: flow.receivers,
+                purpose: flow.purpose as MissionFlowRequirement["purpose"],
+                priority: flow.priority,
+                latencyMs: latencyMs(flow.latency_req),
+                reliability: flow.reliability_req,
+                deliveryMode: flow.delivery_mode as MissionFlowRequirement["deliveryMode"],
+            })),
+            resourceBudget: "预设模型结果：带宽上限 70%，中继数上限 3，功率上限 +3 dB。",
+            backupRequirement: "预设模型结果：P5 业务需要 2 条备路，P4 业务需要 1 条备路。",
+            healingPolicy: "预设模型结果：SNR 低于 8 dB 时自动切换，延迟低于 500 ms。",
         },
     };
 }
@@ -155,35 +125,22 @@ export function planMissionSubgraph(
     mcs: MissionCommunicationSpecification,
     links: CommunicationLink[],
 ): PlannedTaskSubgraph {
-    const primaryLinkIds = unique(mcs.flows.flatMap((flow) => {
-        const paths = flow.receivers
-            .map((receiver) => shortestPathLinkIds(flow.source, receiver, links))
-            .filter((path) => path.length > 0)
-            .sort((left, right) => left.length - right.length);
-        return paths[0] ?? [];
-    }));
-    const primaryPhysicalLinks = new Set(
-        links
-            .filter((link) => primaryLinkIds.includes(link.id))
-            .map(physicalLinkKey),
+    const primaryLinks = plannedLinksForPaths(
+        presetPlannerOutput.flow_results.map((result) => result.primary_path),
+        "primary",
+        links,
     );
-    const backupLinkIds = unique(mcs.flows.flatMap((flow) => {
-        const paths = flow.receivers
-            .map((receiver) => shortestPathLinkIds(
-                flow.source,
-                receiver,
-                links,
-                primaryPhysicalLinks,
-            ))
-            .filter((path) => path.length > 0)
-            .sort((left, right) => left.length - right.length);
-        return paths[0] ?? [];
-    }));
+    const backupLinks = plannedLinksForPaths(
+        presetPlannerOutput.flow_results.flatMap((result) => result.backup_paths),
+        "backup",
+        links,
+    );
 
     return {
         missionId: mcs.missionId,
         keyNodeIds: mcs.keyNodeIds,
-        primaryLinkIds,
-        backupLinkIds,
+        primaryLinkIds: primaryLinks.map((link) => link.id),
+        backupLinkIds: backupLinks.map((link) => link.id),
+        links: [...primaryLinks, ...backupLinks],
     };
 }

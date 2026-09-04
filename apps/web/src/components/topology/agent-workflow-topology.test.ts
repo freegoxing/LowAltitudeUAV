@@ -22,7 +22,7 @@ test("does not highlight task nodes before an Agent2 subgraph is confirmed", () 
 
 test("renders communication links only after a mission subgraph is confirmed", () => {
     assert.match(source, /const plannedLinks = useMemo\(/);
-    assert.match(source, /plannedSubgraph \? filtered\.links\.filter/);
+    assert.match(source, /plannedSubgraph\?\.links \?\? \[\]/);
     assert.match(source, /adaptTopology\(filtered\.nodes, plannedLinks/);
     assert.match(source, /links=\{plannedLinks\}/);
 });

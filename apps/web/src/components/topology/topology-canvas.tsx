@@ -134,11 +134,8 @@ export function TopologyCanvas() {
         [state.nodes, state.links, state.filters],
     );
     const plannedLinks = useMemo(
-        () => plannedSubgraph ? filtered.links.filter((link) => (
-            plannedSubgraph.primaryLinkIds.includes(link.id)
-            || plannedSubgraph.backupLinkIds.includes(link.id)
-        )) : [],
-        [filtered.links, plannedSubgraph],
+        () => plannedSubgraph?.links ?? [],
+        [plannedSubgraph],
     );
     const highlightedTaskNodeIds = useMemo(
         () => {
