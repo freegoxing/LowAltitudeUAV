@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { divIcon, type Marker as LeafletMarker, type PathOptions } from "leaflet";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+    Control as LeafletControl,
+    DomEvent,
+    DomUtil,
+    divIcon,
+    type Marker as LeafletMarker,
+    type PathOptions,
+} from "leaflet";
 import {
     Circle,
     MapContainer,
@@ -18,6 +26,7 @@ import {
 import type { LayerVisibility, MapVisualPreference } from "@/types/dashboard";
 import type { CommunicationLink, RescueNode, RescueNodeType } from "@/types/rescue";
 import styles from "./rescue-map.module.css";
+import { TopologyLegend } from "./topology-legend";
 
 const YINGXIU_CENTER: [number, number] = [31.0607, 103.4858];
 const YINGXIU_ZOOM = 13;
@@ -103,6 +112,28 @@ function ClearSelection({ onClearSelection }: Pick<RescueMapProps, "onClearSelec
     return null;
 }
 
+function MapLegend() {
+    const map = useMap();
+    const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const control = new LeafletControl({ position: "bottomleft" });
+        control.onAdd = () => {
+            const element = DomUtil.create("div");
+            DomEvent.disableClickPropagation(element);
+            setContainer(element);
+            return element;
+        };
+        control.addTo(map);
+        return () => {
+            control.remove();
+            setContainer(null);
+        };
+    }, [map]);
+
+    return container ? createPortal(<TopologyLegend variant="map" />, container) : null;
+}
+
 export interface RescueMapProps {
     mode: "map" | "hybrid";
     nodes: RescueNode[];
@@ -169,6 +200,7 @@ export function RescueMap({
                 url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <ScaleControl imperial={false} position="bottomright" />
+            <MapLegend />
             <ResetMapView centerRevision={centerRevision} viewRevision={viewRevision} />
             <ClearSelection onClearSelection={onClearSelection} />
 

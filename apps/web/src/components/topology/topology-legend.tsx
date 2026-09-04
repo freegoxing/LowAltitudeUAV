@@ -1,12 +1,23 @@
+import { topologyLegendItems } from "@/lib/topology-legend-data";
+
 import styles from "./rescue-workspace.module.css";
 
-export function TopologyLegend() {
+interface TopologyLegendProps {
+    variant?: "topology" | "map";
+}
+
+export function TopologyLegend({ variant = "topology" }: TopologyLegendProps) {
     return (
-        <div className={styles.legend} aria-label="拓扑图例">
-            <span><i className={styles.primaryLine} />主路径</span>
-            <span><i className={styles.relayLine} />中继</span>
-            <span><i className={styles.backupLine} />备用</span>
-            <span><i className={styles.warningLine} />不稳定</span>
+        <div
+            aria-label="通信路径与节点高亮图例"
+            className={variant === "map" ? styles.mapLegend : styles.legend}
+        >
+            {topologyLegendItems.map((item) => (
+                <span key={item.id}>
+                    {item.nodeMarker ? <b className={styles[item.symbolClass]} /> : <i className={styles[item.symbolClass]} />}
+                    {item.label}
+                </span>
+            ))}
         </div>
     );
 }

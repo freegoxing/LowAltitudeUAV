@@ -6,6 +6,7 @@ import { mockNodes } from "@/data/mock-nodes";
 import { adaptTopology, nearestHandles } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
 import { layoutTopology, topologyGroupForType } from "@/lib/topology-layout";
+import { topologyLegendItems } from "@/lib/topology-legend-data";
 import type { CommunicationLink } from "@/types/rescue";
 import { defaultTopologyFilters } from "@/types/topology";
 
@@ -180,4 +181,11 @@ test("topology mode keeps the detailed card renderer", () => {
     });
 
     assert.equal(result.nodes[0].data.renderVariant, "card");
+});
+
+test("topology legend explains every planned path and highlight state", () => {
+    assert.deepEqual(
+        topologyLegendItems.map((item) => item.id),
+        ["primary", "backup", "context", "selectedLink", "keyNode", "selectedNode"],
+    );
 });
