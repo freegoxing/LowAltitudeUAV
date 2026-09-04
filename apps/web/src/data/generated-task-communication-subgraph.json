@@ -1,0 +1,320 @@
+{
+  "mission": {
+    "mission_id": "SAR-FIRE-001",
+    "mission_type": "TASK-SAR",
+    "mission_priority": 5,
+    "key_nodes": [
+      "UAV-S-1",
+      "GND-P-1",
+      "GND-P-2",
+      "GND-C-1"
+    ],
+    "mission_flows": [
+      {
+        "flow_id": "F-1",
+        "source": "UAV-S-1",
+        "receivers": [
+          "GND-P-1"
+        ],
+        "purpose": "搜救引导",
+        "priority": 5,
+        "bandwidth_req": "15 Mbps",
+        "latency_req": "120 ms",
+        "reliability_req": 0.99,
+        "delivery_mode": "anycast",
+        "command_sync": "immediate",
+        "deadline": null
+      },
+      {
+        "flow_id": "F-2",
+        "source": "UAV-S-1",
+        "receivers": [
+          "GND-P-2"
+        ],
+        "purpose": "医疗协同",
+        "priority": 4,
+        "bandwidth_req": "8 Mbps",
+        "latency_req": "200 ms",
+        "reliability_req": 0.97,
+        "delivery_mode": "unicast",
+        "command_sync": "summary",
+        "deadline": null
+      },
+      {
+        "flow_id": "F-3",
+        "source": "GND-P-1",
+        "receivers": [
+          "GND-C-1"
+        ],
+        "purpose": "态势同步",
+        "priority": 2,
+        "bandwidth_req": "2 Mbps",
+        "latency_req": "1 s",
+        "reliability_req": 0.9,
+        "delivery_mode": "unicast",
+        "command_sync": "summary",
+        "deadline": null
+      }
+    ],
+    "resource_budget": {
+      "mission_bandwidth_cap": "70%",
+      "relay_count_cap": 3,
+      "power_ceiling": "+3 dB"
+    },
+    "backup_requirement": {
+      "priority_5": 2,
+      "priority_4": 1
+    },
+    "healing_policy": {
+      "switch_threshold_snr_db": 8,
+      "switch_delay": "<500 ms",
+      "recovery": "automatic"
+    },
+    "command_receiver": "GND-C-1"
+  },
+  "flow_results": [
+    {
+      "flow": {
+        "flow_id": "F-1",
+        "source": "UAV-S-1",
+        "receivers": [
+          "GND-P-1"
+        ],
+        "purpose": "搜救引导",
+        "priority": 5,
+        "bandwidth_req": "15 Mbps",
+        "latency_req": "120 ms",
+        "reliability_req": 0.99,
+        "delivery_mode": "anycast",
+        "command_sync": "immediate",
+        "deadline": null
+      },
+      "status": "planned",
+      "selected_receiver": "GND-P-1",
+      "primary_path": [
+        "UAV-S-1",
+        "UAV-R-7",
+        "UAV-M-5",
+        "GND-P-2",
+        "UAV-M-4",
+        "UAV-R-6",
+        "UAV-R-1",
+        "UAV-M-2",
+        "GND-P-1"
+      ],
+      "primary_min_snr": 7.2,
+      "backup_paths": [],
+      "backup_min_snrs": [],
+      "relay_nodes": [
+        "UAV-R-7",
+        "UAV-M-5",
+        "GND-P-2",
+        "UAV-M-4",
+        "UAV-R-6",
+        "UAV-R-1",
+        "UAV-M-2"
+      ],
+      "reserved_resources": {
+        "bandwidth_budget": "70%",
+        "relay_count_cap": 3,
+        "power_ceiling": "+3 dB",
+        "path_hops": 8,
+        "backup_paths": 0
+      }
+    },
+    {
+      "flow": {
+        "flow_id": "F-2",
+        "source": "UAV-S-1",
+        "receivers": [
+          "GND-P-2"
+        ],
+        "purpose": "医疗协同",
+        "priority": 4,
+        "bandwidth_req": "8 Mbps",
+        "latency_req": "200 ms",
+        "reliability_req": 0.97,
+        "delivery_mode": "unicast",
+        "command_sync": "summary",
+        "deadline": null
+      },
+      "status": "planned",
+      "selected_receiver": "GND-P-2",
+      "primary_path": [
+        "UAV-S-1",
+        "UAV-R-7",
+        "UAV-M-5",
+        "GND-P-2"
+      ],
+      "primary_min_snr": 7.5,
+      "backup_paths": [
+        [
+          "UAV-S-1",
+          "UAV-R-3",
+          "UAV-R-8",
+          "UAV-R-5",
+          "UAV-R-1",
+          "UAV-R-6",
+          "UAV-M-4",
+          "GND-P-2"
+        ]
+      ],
+      "backup_min_snrs": [
+        7.2
+      ],
+      "relay_nodes": [
+        "UAV-R-7",
+        "UAV-M-5"
+      ],
+      "reserved_resources": {
+        "bandwidth_budget": "70%",
+        "relay_count_cap": 3,
+        "power_ceiling": "+3 dB",
+        "path_hops": 3,
+        "backup_paths": 1
+      }
+    },
+    {
+      "flow": {
+        "flow_id": "F-3",
+        "source": "GND-P-1",
+        "receivers": [
+          "GND-C-1"
+        ],
+        "purpose": "态势同步",
+        "priority": 2,
+        "bandwidth_req": "2 Mbps",
+        "latency_req": "1 s",
+        "reliability_req": 0.9,
+        "delivery_mode": "unicast",
+        "command_sync": "summary",
+        "deadline": null
+      },
+      "status": "planned",
+      "selected_receiver": "GND-C-1",
+      "primary_path": [
+        "GND-P-1",
+        "UAV-M-2",
+        "UAV-R-1",
+        "BS-4",
+        "GND-C-1"
+      ],
+      "primary_min_snr": 8.4,
+      "backup_paths": [],
+      "backup_min_snrs": [],
+      "relay_nodes": [
+        "UAV-M-2",
+        "UAV-R-1",
+        "BS-4"
+      ],
+      "reserved_resources": {
+        "bandwidth_budget": "70%",
+        "relay_count_cap": 3,
+        "power_ceiling": "+3 dB",
+        "path_hops": 4,
+        "backup_paths": 0
+      }
+    }
+  ],
+  "task_communication_subgraph": {
+    "nodes": [
+      "BS-4",
+      "GND-C-1",
+      "GND-P-1",
+      "GND-P-2",
+      "UAV-M-2",
+      "UAV-M-4",
+      "UAV-M-5",
+      "UAV-R-1",
+      "UAV-R-3",
+      "UAV-R-5",
+      "UAV-R-6",
+      "UAV-R-7",
+      "UAV-R-8",
+      "UAV-S-1"
+    ],
+    "edges": [
+      [
+        "BS-4",
+        "GND-C-1"
+      ],
+      [
+        "GND-P-1",
+        "UAV-M-2"
+      ],
+      [
+        "GND-P-2",
+        "UAV-M-4"
+      ],
+      [
+        "UAV-M-2",
+        "GND-P-1"
+      ],
+      [
+        "UAV-M-2",
+        "UAV-R-1"
+      ],
+      [
+        "UAV-M-4",
+        "GND-P-2"
+      ],
+      [
+        "UAV-M-4",
+        "UAV-R-6"
+      ],
+      [
+        "UAV-M-5",
+        "GND-P-2"
+      ],
+      [
+        "UAV-R-1",
+        "BS-4"
+      ],
+      [
+        "UAV-R-1",
+        "UAV-M-2"
+      ],
+      [
+        "UAV-R-1",
+        "UAV-R-6"
+      ],
+      [
+        "UAV-R-3",
+        "UAV-R-8"
+      ],
+      [
+        "UAV-R-5",
+        "UAV-R-1"
+      ],
+      [
+        "UAV-R-6",
+        "UAV-M-4"
+      ],
+      [
+        "UAV-R-6",
+        "UAV-R-1"
+      ],
+      [
+        "UAV-R-7",
+        "UAV-M-5"
+      ],
+      [
+        "UAV-R-8",
+        "UAV-R-5"
+      ],
+      [
+        "UAV-S-1",
+        "UAV-R-3"
+      ],
+      [
+        "UAV-S-1",
+        "UAV-R-7"
+      ]
+    ]
+  },
+  "selected_receivers": {
+    "F-1": "GND-P-1",
+    "F-2": "GND-P-2",
+    "F-3": "GND-C-1"
+  }
+}

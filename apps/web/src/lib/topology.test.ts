@@ -98,6 +98,23 @@ test("edge emphasis follows selection, task, primary, backup priority", () => {
     assert.equal(emphasis.get("uav-link-1-GND-C-1-BS-1"), "muted");
 });
 
+test("marks routing subgraph key nodes independently from normal task nodes", () => {
+    const result = adaptTopology(mockNodes, mockLinks, {
+        mode: "topology",
+        selectedLinkId: null,
+        highlightedTaskNodeIds: ["UAV-S-1", "UAV-R-7"],
+        highlightedPathId: null,
+        keyNodeIds: ["UAV-S-1"],
+        primaryLinkIds: [],
+        backupLinkIds: [],
+        mapVisualPreference: "nodePriority",
+    });
+    const nodes = new Map(result.nodes.map((node) => [node.id, node]));
+
+    assert.equal(nodes.get("UAV-S-1")!.data.isSubgraphKey, true);
+    assert.equal(nodes.get("UAV-R-7")!.data.isSubgraphKey, false);
+});
+
 test("map mode keeps nodes inside the map viewport safe area", () => {
     const result = adaptTopology(mockNodes, mockLinks, {
         mode: "map",

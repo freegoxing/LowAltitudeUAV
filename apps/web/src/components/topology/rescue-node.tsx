@@ -45,7 +45,7 @@ export function RescueNode({ data, selected }: NodeProps<RescueFlowNode>) {
 
     return (
         <article
-            className={`${styles.node} ${isCompact ? styles.nodeCompact : styles.nodeCard} ${data.visualPreference === "nodePriority" ? styles.nodePriority : styles.nodeMapPriority} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${node.isCritical ? styles.criticalNode : ""}`}
+            className={`${styles.node} ${isCompact ? styles.nodeCompact : styles.nodeCard} ${data.visualPreference === "nodePriority" ? styles.nodePriority : styles.nodeMapPriority} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${data.isSubgraphKey ? styles.subgraphKey : ""} ${node.isCritical ? styles.criticalNode : ""}`}
             title={`${node.name} · ${statusText[node.status]} · ${keyStatus}`}
         >
             <Handle type="target" position={Position.Left} className={styles.handle} />

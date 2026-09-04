@@ -126,9 +126,14 @@ export function TopologyCanvas() {
     );
     const highlightedTaskNodeIds = useMemo(
         () => state.layers.tasks
-            ? [...(task?.assignedNodeIds ?? []), ...(task?.targetNodeIds ?? [])]
+            ? [
+                ...(task?.assignedNodeIds ?? []),
+                ...(task?.targetNodeIds ?? []),
+                ...(taskSubgraph?.primaryNodeIds ?? []),
+                ...(taskSubgraph?.backupNodeIds ?? []),
+            ]
             : [],
-        [state.layers.tasks, task],
+        [state.layers.tasks, task, taskSubgraph],
     );
     const flow = useMemo(() => {
         return adaptTopology(filtered.nodes, filtered.links, {
@@ -136,6 +141,7 @@ export function TopologyCanvas() {
             selectedLinkId: state.selectedLinkId,
             highlightedTaskNodeIds,
             highlightedPathId: state.layers.tasks ? state.highlightedPathId : null,
+            keyNodeIds: taskSubgraph?.keyNodeIds,
             primaryLinkIds: taskSubgraph?.primaryLinkIds ?? [],
             backupLinkIds: taskSubgraph?.backupLinkIds ?? [],
             mapVisualPreference: state.mapVisualPreference,
@@ -151,11 +157,14 @@ export function TopologyCanvas() {
                     centerRevision={state.centerRevision}
                     highlightedPathId={state.layers.tasks ? state.highlightedPathId : null}
                     highlightedTaskNodeIds={highlightedTaskNodeIds}
+                    keyNodeIds={taskSubgraph?.keyNodeIds ?? []}
                     layers={state.layers}
                     links={filtered.links}
                     mapVisualPreference={state.mapVisualPreference}
                     mode={state.viewMode}
                     nodes={filtered.nodes}
+                    primaryLinkIds={taskSubgraph?.primaryLinkIds ?? []}
+                    backupLinkIds={taskSubgraph?.backupLinkIds ?? []}
                     onClearSelection={state.clearSelection}
                     onMoveNode={state.updateNodeLocation}
                     onSelectLink={state.selectLink}

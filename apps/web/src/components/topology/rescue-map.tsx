@@ -40,6 +40,7 @@ function markerIcon(
     node: RescueNode,
     selected: boolean,
     taskHighlighted: boolean,
+    keyNode: boolean,
     mode: RescueMapProps["mode"],
 ) {
     const classes = [
@@ -48,6 +49,7 @@ function markerIcon(
         styles[`status${node.status}`],
         selected ? styles.selectedMarker : "",
         taskHighlighted ? styles.taskMarker : "",
+        keyNode ? styles.keyMarker : "",
     ].filter(Boolean).join(" ");
 
     return divIcon({
@@ -60,8 +62,16 @@ function markerIcon(
     });
 }
 
-function linkStyle(link: CommunicationLink, selected: boolean): PathOptions {
+function linkStyle(
+    link: CommunicationLink,
+    selected: boolean,
+    primary: boolean,
+    backup: boolean,
+    dimmed: boolean,
+): PathOptions {
     if (selected) return { color: "#1d4ed8", weight: 4, opacity: 1 };
+    if (primary) return { color: "#ff3b73", weight: 4, opacity: 1 };
+    if (backup) return { color: "#f59e0b", weight: 3, dashArray: "8 6", opacity: 1 };
     if (link.status === "interrupted") {
         return { color: "#dc2626", weight: 3, dashArray: "8 7", opacity: 0.9 };
     }
@@ -71,7 +81,9 @@ function linkStyle(link: CommunicationLink, selected: boolean): PathOptions {
     if (link.status === "degraded") {
         return { color: "#0284c7", weight: 3, dashArray: "10 6", opacity: 0.85 };
     }
-    return { color: "#2563eb", weight: 3, opacity: 0.8 };
+    return dimmed
+        ? { color: "#94a3b8", weight: 1.2, opacity: 0.22 }
+        : { color: "#2563eb", weight: 3, opacity: 0.8 };
 }
 
 function ResetMapView({ centerRevision, viewRevision }: Pick<RescueMapProps, "centerRevision" | "viewRevision">) {
@@ -99,6 +111,9 @@ export interface RescueMapProps {
     selectedLinkId: string | null;
     highlightedTaskNodeIds: string[];
     highlightedPathId: string | null;
+    keyNodeIds: string[];
+    primaryLinkIds: string[];
+    backupLinkIds: string[];
     layers: LayerVisibility;
     mapVisualPreference: MapVisualPreference;
     centerRevision: number;
@@ -117,6 +132,9 @@ export function RescueMap({
     selectedLinkId,
     highlightedTaskNodeIds,
     highlightedPathId,
+    keyNodeIds,
+    primaryLinkIds,
+    backupLinkIds,
     layers,
     mapVisualPreference,
     centerRevision,
@@ -128,6 +146,10 @@ export function RescueMap({
 }: RescueMapProps) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
     const taskNodeIds = new Set(highlightedTaskNodeIds);
+    const keyNodes = new Set(keyNodeIds);
+    const primaryLinks = new Set(primaryLinkIds);
+    const backupLinks = new Set(backupLinkIds);
+    const hasPlannedSubgraph = primaryLinks.size > 0 || backupLinks.size > 0;
     const baseStation = nodes.find((node) => node.type === "temporary_base_station");
 
     return (
@@ -183,7 +205,13 @@ export function RescueMap({
                     <Polyline
                         eventHandlers={{ click: () => onSelectLink(link.id) }}
                         key={link.id}
-                        pathOptions={linkStyle(link, selectedLinkId === link.id || link.pathId === highlightedPathId)}
+                        pathOptions={linkStyle(
+                            link,
+                            selectedLinkId === link.id || link.pathId === highlightedPathId,
+                            primaryLinks.has(link.id),
+                            backupLinks.has(link.id),
+                            hasPlannedSubgraph,
+                        )}
                         positions={[
                             [source.latitude, source.longitude],
                             [target.latitude, target.longitude],
@@ -208,6 +236,7 @@ export function RescueMap({
                         node,
                         selectedNodeId === node.id,
                         taskNodeIds.has(node.id),
+                        keyNodes.has(node.id),
                         mode,
                     )}
                     key={node.id}

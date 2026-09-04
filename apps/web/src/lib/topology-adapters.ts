@@ -33,6 +33,7 @@ export function adaptTopology(
     const mappedPositions =
         options.mode === "map" ? mapPositions(positionedNodes) : null;
     const taskNodeIds = new Set(options.highlightedTaskNodeIds);
+    const keyNodeIds = new Set(options.keyNodeIds ?? []);
     const nodeIds = new Set(positionedNodes.map((node) => node.id));
     const flowNodes = positionedNodes.map((node, index): RescueFlowNode => ({
         id: node.id,
@@ -46,6 +47,7 @@ export function adaptTopology(
         data: {
             rescueNode: node,
             dimmed: taskNodeIds.size > 0 && !taskNodeIds.has(node.id),
+            isSubgraphKey: keyNodeIds.has(node.id),
             visualPreference: options.mapVisualPreference,
             renderVariant: options.mode === "topology" ? "card" : "compact",
         },

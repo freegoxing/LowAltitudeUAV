@@ -31,3 +31,26 @@ test("target-centric missions bind discovery nodes, action receivers, and planne
     assert.ok(mockTasks.every((task) => task.flows.some((flow) => flow.receivers.some((id) => id !== "GND-C-1"))));
     assert.ok(mockTasks.every((task) => mockMissionSubgraphs[task.id]));
 });
+
+test("the default rescue mission visualizes the routing planner's selected subgraph", () => {
+    const plannerKeyNodes = ["UAV-S-1", "GND-P-1", "GND-P-2", "GND-C-1"];
+    const linkIds = new Set(mockLinks.map((link) => link.id));
+    const plannedSubgraph = mockMissionSubgraphs["t-1"];
+
+    assert.deepEqual(plannedSubgraph.primaryNodeIds, [
+        "UAV-S-1",
+        "UAV-R-7",
+        "UAV-M-5",
+        "GND-P-2",
+        "UAV-M-4",
+        "UAV-R-6",
+        "UAV-R-1",
+        "UAV-M-2",
+        "GND-P-1",
+        "BS-4",
+        "GND-C-1",
+    ]);
+    assert.deepEqual(plannedSubgraph.keyNodeIds, plannerKeyNodes);
+    assert.ok(plannedSubgraph.primaryLinkIds.length > 0);
+    assert.ok(plannedSubgraph.primaryLinkIds.every((linkId) => linkIds.has(linkId)));
+});

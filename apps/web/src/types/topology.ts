@@ -20,6 +20,7 @@ export type PathEmphasis =
 export type RescueFlowNodeData = {
     rescueNode: RescueNode;
     dimmed: boolean;
+    isSubgraphKey: boolean;
     visualPreference: MapVisualPreference;
     renderVariant: "card" | "compact";
 };
@@ -55,6 +56,7 @@ export interface TopologyAdaptOptions {
     selectedLinkId: string | null;
     highlightedTaskNodeIds: string[];
     highlightedPathId: string | null;
+    keyNodeIds?: string[];
     primaryLinkIds: string[];
     backupLinkIds: string[];
     mapVisualPreference: MapVisualPreference;
