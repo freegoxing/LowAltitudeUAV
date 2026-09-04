@@ -28,4 +28,6 @@ test("uses OSM tiles with visible attribution and an Yingxiu initial view", () =
     assert.match(mapSource, /wheelPxPerZoomLevel=\{160\}/);
     assert.match(mapSource, /zoomSnap=\{0\.25\}/);
     assert.match(mapSource, /onMoveNode/);
+    assert.match(mapSource, /mode: "map" \| "hybrid"/);
+    assert.match(mapSource, /hybridLabel/);
 });

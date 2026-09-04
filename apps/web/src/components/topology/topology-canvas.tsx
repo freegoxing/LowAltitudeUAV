@@ -129,6 +129,7 @@ export function TopologyCanvas() {
                     layers={state.layers}
                     links={filtered.links}
                     mapVisualPreference={state.mapVisualPreference}
+                    mode={state.viewMode}
                     nodes={filtered.nodes}
                     onClearSelection={state.clearSelection}
                     onMoveNode={state.updateNodeLocation}

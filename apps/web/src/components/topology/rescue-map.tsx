@@ -36,7 +36,12 @@ const markerSymbol: Record<RescueNodeType, string> = {
     trapped_area: "险",
 };
 
-function markerIcon(node: RescueNode, selected: boolean, taskHighlighted: boolean) {
+function markerIcon(
+    node: RescueNode,
+    selected: boolean,
+    taskHighlighted: boolean,
+    mode: RescueMapProps["mode"],
+) {
     const classes = [
         styles.marker,
         styles[`marker${node.type}`],
@@ -47,9 +52,11 @@ function markerIcon(node: RescueNode, selected: boolean, taskHighlighted: boolea
 
     return divIcon({
         className: styles.markerContainer,
-        html: `<span class="${classes}">${markerSymbol[node.type]}</span>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
+        html: mode === "hybrid"
+            ? `<span class="${styles.hybridMarker}"><span class="${classes}">${markerSymbol[node.type]}</span><span class="${styles.hybridLabel}">${node.name}</span></span>`
+            : `<span class="${classes}">${markerSymbol[node.type]}</span>`,
+        iconSize: mode === "hybrid" ? [120, 34] : [30, 30],
+        iconAnchor: mode === "hybrid" ? [15, 17] : [15, 15],
     });
 }
 
@@ -85,6 +92,7 @@ function ClearSelection({ onClearSelection }: Pick<RescueMapProps, "onClearSelec
 }
 
 export interface RescueMapProps {
+    mode: "map" | "hybrid";
     nodes: RescueNode[];
     links: CommunicationLink[];
     selectedNodeId: string | null;
@@ -102,6 +110,7 @@ export interface RescueMapProps {
 }
 
 export function RescueMap({
+    mode,
     nodes,
     links,
     selectedNodeId,
@@ -195,7 +204,12 @@ export function RescueMap({
                             onMoveNode(node.id, location.lat, location.lng);
                         },
                     }}
-                    icon={markerIcon(node, selectedNodeId === node.id, taskNodeIds.has(node.id))}
+                    icon={markerIcon(
+                        node,
+                        selectedNodeId === node.id,
+                        taskNodeIds.has(node.id),
+                        mode,
+                    )}
                     key={node.id}
                     position={[node.latitude, node.longitude]}
                 >
