@@ -1,0 +1,88 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { Bot, CheckCircle2, MessageSquareText, Send, Sparkles } from "lucide-react";
+
+import { mockNodes } from "@/data/mock-nodes";
+import { PanelCard } from "@/components/ui/panel-card";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useAgentWorkflowStore } from "@/stores/use-agent-workflow-store";
+import styles from "./agent-workflow.module.css";
+
+const initialMessage = "立即搜救，重点保障医疗组并保持通信稳定";
+
+function nodeName(nodeId: string) {
+    return mockNodes.find((node) => node.id === nodeId)?.name ?? nodeId;
+}
+
+export function AgentWorkflowPanel() {
+    const phase = useAgentWorkflowStore((state) => state.phase);
+    const draft = useAgentWorkflowStore((state) => state.draft);
+    const plannedSubgraph = useAgentWorkflowStore((state) => state.plannedSubgraph);
+    const submitMessage = useAgentWorkflowStore((state) => state.submitMessage);
+    const confirmMission = useAgentWorkflowStore((state) => state.confirmMission);
+    const [message, setMessage] = useState(initialMessage);
+
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const content = message.trim();
+        if (content) submitMessage(content);
+    }
+
+    return (
+        <PanelCard className={styles.card}>
+            <SectionHeader title="智能体协同" meta={phase === "planned" ? "已规划" : "待研判"} />
+            <div className={styles.body}>
+                <section className={styles.agentSection}>
+                    <div className={styles.label}><Sparkles size={13} /><strong>Agent1 态势感知</strong></div>
+                    {draft ? (
+                        <div className={styles.assessment}>
+                            <div className={styles.badges}>
+                                <StatusBadge tone="red">{draft.assessment.level} 高风险</StatusBadge>
+                                <span>紧急度 {draft.assessment.urgency}/5 · 可行性 {draft.assessment.feasibility}/5</span>
+                            </div>
+                            <p>{draft.assessment.summary}</p>
+                        </div>
+                    ) : <p className={styles.hint}>发送指令后，Agent1 将基于当前网络态势生成任务等级与风险研判。</p>}
+                </section>
+
+                <section className={styles.agentSection}>
+                    <div className={styles.label}><MessageSquareText size={13} /><strong>Agent2 对话与任务翻译</strong></div>
+                    <form className={styles.form} onSubmit={handleSubmit}>
+                        <textarea
+                            aria-label="指挥员任务指令"
+                            onChange={(event) => setMessage(event.target.value)}
+                            placeholder="例如：立即搜救，重点保障医疗组并保持通信稳定"
+                            value={message}
+                        />
+                        <button disabled={!message.trim()} type="submit"><Send size={13} />生成任务通信规范</button>
+                    </form>
+                </section>
+
+                {draft && (
+                    <section className={styles.agentSection}>
+                        <div className={styles.label}><Bot size={13} /><strong>MCS · 待人工确认</strong></div>
+                        <p className={styles.mission}>{draft.mcs.missionType} · {draft.mcs.missionPriority}</p>
+                        <div className={styles.keyNodes}>
+                            <span>关键节点</span>
+                            <div>{draft.mcs.keyNodeIds.map((id) => <b key={id}>{nodeName(id)}</b>)}</div>
+                        </div>
+                        <ul className={styles.flows}>
+                            {draft.mcs.flows.map((flow) => (
+                                <li key={flow.id}>
+                                    <strong>{flow.purpose} · P{flow.priority}</strong>
+                                    <span>{nodeName(flow.source)} → {flow.receivers.map(nodeName).join("、")}</span>
+                                    <small>{flow.latencyMs} ms · 可靠性 {(flow.reliability * 100).toFixed(0)}% · {flow.deliveryMode}</small>
+                                </li>
+                            ))}
+                        </ul>
+                        <p className={styles.constraints}><b>约束</b>{draft.mcs.resourceBudget}<br />{draft.mcs.backupRequirement}<br />{draft.mcs.healingPolicy}</p>
+                        {phase === "review" && <button className={styles.confirm} onClick={confirmMission} type="button"><CheckCircle2 size={14} />确认并规划子图</button>}
+                        {phase === "planned" && plannedSubgraph && <div className={styles.planned}><CheckCircle2 size={14} />规划器已生成 {plannedSubgraph.primaryLinkIds.length} 条主链路和 {plannedSubgraph.backupLinkIds.length} 条备链路。</div>}
+                    </section>
+                )}
+            </div>
+        </PanelCard>
+    );
+}

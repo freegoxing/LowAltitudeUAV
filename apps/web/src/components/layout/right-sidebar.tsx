@@ -1,8 +1,9 @@
 import { AlertList } from "@/components/details/alert-list";
 import { PlanningSummary } from "@/components/details/planning-summary";
 import { SelectionDetail } from "@/components/details/selection-detail";
+import { AgentWorkflowPanel } from "@/components/agent-workflow/agent-workflow-panel";
 import styles from "./workspace-layout.module.css";
 
 export function RightSidebar() {
-    return <aside className={styles.right}><SelectionDetail /><PlanningSummary /><AlertList /></aside>;
+    return <aside className={styles.right}><SelectionDetail /><AgentWorkflowPanel /><PlanningSummary /><AlertList /></aside>;
 }
