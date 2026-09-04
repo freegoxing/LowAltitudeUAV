@@ -42,8 +42,13 @@ test("identifies an Agent2-confirmed subgraph in the planning summary", () => {
 });
 
 test("keeps planning cards reachable by giving the agent panel a bounded scroll region", () => {
-    assert.match(layoutStyles, /\.right\s*{[^}]*grid-template-rows:\s*auto minmax\(0,1fr\) auto auto[^}]*overflow:hidden[^}]*}/);
+    assert.match(layoutStyles, /\.right\s*{[^}]*grid-template-rows:\s*auto minmax\(0,1fr\) auto[^}]*overflow:hidden[^}]*}/);
     assert.match(layoutStyles, /\.agentWorkflow\s*{[^}]*min-height:0[^}]*}/);
     assert.match(workflowStyles, /\.card\s*{[^}]*min-height:0[^}]*grid-template-rows:.*minmax\(0,1fr\)/);
     assert.match(workflowStyles, /\.body\s*{[^}]*min-height:0[^}]*overflow-y:auto/);
+});
+
+test("removes the warning list and dedicates its available height to the agent workspace", () => {
+    assert.doesNotMatch(sidebarSource, /AlertList/);
+    assert.match(sidebarSource, /<AgentWorkflowPanel\s*\/>[\s\S]*<PlanningSummary/);
 });
