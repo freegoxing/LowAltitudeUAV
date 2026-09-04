@@ -46,35 +46,46 @@ export interface AgentWorkflowDraft {
 }
 
 const keyNodeIds = ["UAV-S-1", "GND-P-1", "UAV-M-3", "GND-C-1"];
-const primaryPathPairs = [
-    ["UAV-S-1", "UAV-R-7"],
-    ["UAV-R-7", "UAV-M-5"],
-    ["UAV-M-5", "GND-P-2"],
-    ["GND-P-2", "UAV-M-4"],
-    ["UAV-M-4", "UAV-R-6"],
-    ["UAV-R-6", "UAV-R-1"],
-    ["UAV-R-1", "UAV-M-2"],
-    ["UAV-M-2", "GND-P-1"],
-    ["UAV-S-1", "BS-4"],
-    ["BS-4", "GND-C-1"],
-];
-const backupPathPairs = [
-    ["UAV-S-1", "UAV-R-5"],
-    ["UAV-R-5", "UAV-M-3"],
-    ["UAV-M-3", "GND-P-1"],
-];
+function physicalLinkKey(link: CommunicationLink) {
+    return [link.source, link.target].sort().join("|");
+}
 
-function linkIdsForPairs(
-    pairs: string[][],
+function shortestPathLinkIds(
+    source: string,
+    target: string,
     links: CommunicationLink[],
+    blockedPhysicalLinks = new Set<string>(),
 ) {
-    return pairs.flatMap(([source, target]) => {
-        const link = links.find((candidate) => (
-            (candidate.source === source && candidate.target === target)
-            || (candidate.source === target && candidate.target === source)
-        ));
-        return link ? [link.id] : [];
-    });
+    const queue: Array<{ nodeId: string; pathLinkIds: string[] }> = [{
+        nodeId: source,
+        pathLinkIds: [],
+    }];
+    const visited = new Set([source]);
+
+    while (queue.length) {
+        const current = queue.shift()!;
+        if (current.nodeId === target) return current.pathLinkIds;
+
+        for (const link of links) {
+            if (
+                blockedPhysicalLinks.has(physicalLinkKey(link))
+                || (link.source !== current.nodeId && link.target !== current.nodeId)
+            ) continue;
+            const nextNodeId = link.source === current.nodeId ? link.target : link.source;
+            if (visited.has(nextNodeId)) continue;
+            visited.add(nextNodeId);
+            queue.push({
+                nodeId: nextNodeId,
+                pathLinkIds: [...current.pathLinkIds, link.id],
+            });
+        }
+    }
+
+    return [];
+}
+
+function unique(ids: string[]) {
+    return [...new Set(ids)];
 }
 
 export function createAgentWorkflowDraft(
@@ -142,10 +153,35 @@ export function planMissionSubgraph(
     mcs: MissionCommunicationSpecification,
     links: CommunicationLink[],
 ): PlannedTaskSubgraph {
+    const primaryLinkIds = unique(mcs.flows.flatMap((flow) => {
+        const paths = flow.receivers
+            .map((receiver) => shortestPathLinkIds(flow.source, receiver, links))
+            .filter((path) => path.length > 0)
+            .sort((left, right) => left.length - right.length);
+        return paths[0] ?? [];
+    }));
+    const primaryPhysicalLinks = new Set(
+        links
+            .filter((link) => primaryLinkIds.includes(link.id))
+            .map(physicalLinkKey),
+    );
+    const backupLinkIds = unique(mcs.flows.flatMap((flow) => {
+        const paths = flow.receivers
+            .map((receiver) => shortestPathLinkIds(
+                flow.source,
+                receiver,
+                links,
+                primaryPhysicalLinks,
+            ))
+            .filter((path) => path.length > 0)
+            .sort((left, right) => left.length - right.length);
+        return paths[0] ?? [];
+    }));
+
     return {
         missionId: mcs.missionId,
         keyNodeIds: mcs.keyNodeIds,
-        primaryLinkIds: linkIdsForPairs(primaryPathPairs, links),
-        backupLinkIds: linkIdsForPairs(backupPathPairs, links),
+        primaryLinkIds,
+        backupLinkIds,
     };
 }

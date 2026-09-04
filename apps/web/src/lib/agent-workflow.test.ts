@@ -29,6 +29,7 @@ test("plans links only after receiving an MCS", () => {
     const draft = createAgentWorkflowDraft("立即搜救", mockNodes);
     const subgraph = planMissionSubgraph(draft.mcs, mockLinks);
 
-    assert.ok(subgraph.primaryLinkIds.length > 0);
-    assert.ok(subgraph.backupLinkIds.length > 0);
+    assert.ok(subgraph.primaryLinkIds.length >= 7);
+    assert.ok(subgraph.primaryLinkIds.every((id) => mockLinks.some((link) => link.id === id)));
+    assert.equal(subgraph.backupLinkIds.length, 0);
 });
