@@ -16,12 +16,7 @@ test("creates an MCS for a medical-priority rescue dialogue without routes", () 
     );
 
     assert.equal(draft.assessment.level, "L1");
-    assert.deepEqual(draft.mcs.keyNodeIds, [
-        "UAV-S-1",
-        "GND-P-1",
-        "GND-P-2",
-        "GND-C-1",
-    ]);
+    assert.equal(draft.mcs.candidateGroups.length, 4);
     assert.equal(draft.mcs.flows[0].purpose, "搜救引导");
     assert.equal("primaryLinkIds" in draft.mcs, false);
 });
@@ -44,4 +39,12 @@ test("labels the preset medical receiver with its mission role", () => {
     assert.equal(subgraph.nodeRoleLabels["UAV-S-1"], "侦察感知");
     assert.equal(subgraph.nodeRoleLabels["GND-P-1"], "搜救组");
     assert.equal(subgraph.nodeRoleLabels["GND-C-1"], "指挥中心");
+});
+
+test("keeps multiple communication-node candidates inside each mission tag before planning", () => {
+    const draft = createAgentWorkflowDraft(presetMissionPrompt, mockNodes);
+    const medicalGroup = draft.mcs.candidateGroups.find((group) => group.label === "医疗组");
+
+    assert.deepEqual(medicalGroup?.nodeIds, ["GND-P-2", "UAV-M-4", "UAV-M-5", "UAV-R-6"]);
+    assert.equal(draft.mcs.candidateGroups.every((group) => group.nodeIds.length > 1), true);
 });

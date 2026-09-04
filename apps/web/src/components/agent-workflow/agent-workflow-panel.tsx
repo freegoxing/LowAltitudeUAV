@@ -65,9 +65,14 @@ export function AgentWorkflowPanel() {
                     <section className={styles.agentSection}>
                         <div className={styles.label}><Bot size={13} /><strong>MCS · 待人工确认</strong></div>
                         <p className={styles.mission}>{draft.mcs.missionType} · {draft.mcs.missionPriority}</p>
-                        <div className={styles.keyNodes}>
-                            <span>关键节点</span>
-                            <div>{draft.mcs.keyNodeIds.map((id) => <b key={id}>{nodeName(id)}</b>)}</div>
+                        <div className={styles.candidateGroups}>
+                            <span>标签候选通信节点</span>
+                            {draft.mcs.candidateGroups.map((group) => (
+                                <div key={group.id}>
+                                    <b>{group.label}</b>
+                                    <small>{group.nodeIds.map(nodeName).join("、")}</small>
+                                </div>
+                            ))}
                         </div>
                         <ul className={styles.flows}>
                             {draft.mcs.flows.map((flow) => (
@@ -80,7 +85,13 @@ export function AgentWorkflowPanel() {
                         </ul>
                         <p className={styles.constraints}><b>约束</b>{draft.mcs.resourceBudget}<br />{draft.mcs.backupRequirement}<br />{draft.mcs.healingPolicy}</p>
                         {phase === "review" && <button className={styles.confirm} onClick={confirmMission} type="button"><CheckCircle2 size={14} />确认并规划子图</button>}
-                        {phase === "planned" && plannedSubgraph && <div className={styles.planned}><CheckCircle2 size={14} />规划器已生成 {plannedSubgraph.primaryLinkIds.length} 条主链路和 {plannedSubgraph.backupLinkIds.length} 条备链路。</div>}
+                        {phase === "planned" && plannedSubgraph && <>
+                            <div className={styles.planned}><CheckCircle2 size={14} />规划器已从候选节点中选出关键节点，并生成 {plannedSubgraph.primaryLinkIds.length} 条主链路和 {plannedSubgraph.backupLinkIds.length} 条备链路。</div>
+                            <div className={styles.keyNodes}>
+                                <span>已选关键节点</span>
+                                <div>{plannedSubgraph.keyNodeIds.map((id) => <b key={id}>{nodeName(id)} · {plannedSubgraph.nodeRoleLabels[id]}</b>)}</div>
+                            </div>
+                        </>}
                     </section>
                 )}
             </div>

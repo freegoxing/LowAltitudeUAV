@@ -22,11 +22,17 @@ export interface MissionFlowRequirement {
     deliveryMode: "anycast" | "multicast" | "unicast";
 }
 
+export interface MissionCandidateGroup {
+    id: string;
+    label: string;
+    nodeIds: string[];
+}
+
 export interface MissionCommunicationSpecification {
     missionId: string;
     missionType: "人员搜救";
     missionPriority: "P0";
-    keyNodeIds: string[];
+    candidateGroups: MissionCandidateGroup[];
     flows: MissionFlowRequirement[];
     resourceBudget: string;
     backupRequirement: string;
@@ -49,6 +55,13 @@ export interface AgentWorkflowDraft {
 }
 
 export const presetMissionPrompt = "立即搜救，重点保障医疗组并保持通信稳定";
+
+const presetCandidateGroups: MissionCandidateGroup[] = [
+    { id: "sensing", label: "侦察感知", nodeIds: ["UAV-S-1", "UAV-R-3", "UAV-R-7"] },
+    { id: "search", label: "搜救组", nodeIds: ["GND-P-1", "UAV-M-2", "UAV-R-1"] },
+    { id: "medical", label: "医疗组", nodeIds: ["GND-P-2", "UAV-M-4", "UAV-M-5", "UAV-R-6"] },
+    { id: "command", label: "指挥中心", nodeIds: ["GND-C-1", "BS-4", "UAV-R-1"] },
+];
 
 function latencyMs(value: string) {
     const parsed = Number.parseFloat(value);
@@ -122,7 +135,10 @@ export function createAgentWorkflowDraft(
             missionId: presetPlannerOutput.mission.mission_id,
             missionType: "人员搜救",
             missionPriority: "P0",
-            keyNodeIds: presetPlannerOutput.mission.key_nodes.filter((id) => availableNodeIds.has(id)),
+            candidateGroups: presetCandidateGroups.map((group) => ({
+                ...group,
+                nodeIds: group.nodeIds.filter((id) => availableNodeIds.has(id)),
+            })),
             flows: presetPlannerOutput.mission.mission_flows.map((flow) => ({
                 id: flow.flow_id,
                 source: flow.source,
@@ -157,7 +173,7 @@ export function planMissionSubgraph(
 
     return {
         missionId: mcs.missionId,
-        keyNodeIds: mcs.keyNodeIds,
+        keyNodeIds: presetPlannerOutput.mission.key_nodes,
         nodeRoleLabels: missionNodeRoleLabels(mcs),
         primaryLinkIds: primaryLinks.map((link) => link.id),
         backupLinkIds: backupLinks.map((link) => link.id),
