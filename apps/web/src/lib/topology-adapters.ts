@@ -65,6 +65,7 @@ export function adaptTopology(
             rescueNode: node,
             dimmed: taskNodeIds.size > 0 && !taskNodeIds.has(node.id),
             isSubgraphKey: keyNodeIds.has(node.id),
+            taskRoleLabel: options.nodeRoleLabels?.[node.id],
             visualPreference: options.mapVisualPreference,
             renderVariant: options.mode === "topology" ? "card" : "compact",
         },

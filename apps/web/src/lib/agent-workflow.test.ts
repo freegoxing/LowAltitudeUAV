@@ -6,6 +6,7 @@ import { mockNodes } from "@/data/mock-nodes";
 import {
     createAgentWorkflowDraft,
     planMissionSubgraph,
+    presetMissionPrompt,
 } from "./agent-workflow";
 
 test("creates an MCS for a medical-priority rescue dialogue without routes", () => {
@@ -33,4 +34,14 @@ test("plans links only after receiving an MCS", () => {
     assert.ok(subgraph.backupLinkIds.length >= 7);
     assert.ok(subgraph.primaryLinkIds.every((id) => subgraph.links.some((link) => link.id === id)));
     assert.ok(subgraph.backupLinkIds.every((id) => subgraph.links.some((link) => link.id === id)));
+});
+
+test("labels the preset medical receiver with its mission role", () => {
+    const draft = createAgentWorkflowDraft(presetMissionPrompt, mockNodes);
+    const subgraph = planMissionSubgraph(draft.mcs, mockLinks);
+
+    assert.equal(subgraph.nodeRoleLabels["GND-P-2"], "医疗组");
+    assert.equal(subgraph.nodeRoleLabels["UAV-S-1"], "侦察感知");
+    assert.equal(subgraph.nodeRoleLabels["GND-P-1"], "搜救组");
+    assert.equal(subgraph.nodeRoleLabels["GND-C-1"], "指挥中心");
 });

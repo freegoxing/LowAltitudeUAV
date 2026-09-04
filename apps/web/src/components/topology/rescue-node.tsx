@@ -74,6 +74,7 @@ export function RescueNode({ data, selected }: NodeProps<RescueFlowNode>) {
                     <span>{keyStatus}</span>
                 </div>
             )}
+            {data.taskRoleLabel && <span className={styles.taskRoleTag}>{data.taskRoleLabel}</span>}
             {handlePositions.map((position) => (
                 <Handle
                     className={styles.handle}

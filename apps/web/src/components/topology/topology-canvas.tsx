@@ -154,6 +154,7 @@ export function TopologyCanvas() {
             highlightedTaskNodeIds,
             highlightedPathId: null,
             keyNodeIds: plannedSubgraph?.keyNodeIds,
+            nodeRoleLabels: plannedSubgraph?.nodeRoleLabels,
             primaryLinkIds: plannedSubgraph?.primaryLinkIds ?? [],
             backupLinkIds: plannedSubgraph?.backupLinkIds ?? [],
             mapVisualPreference: state.mapVisualPreference,
@@ -170,6 +171,7 @@ export function TopologyCanvas() {
                     highlightedPathId={null}
                     highlightedTaskNodeIds={highlightedTaskNodeIds}
                     keyNodeIds={plannedSubgraph?.keyNodeIds ?? []}
+                    nodeRoleLabels={plannedSubgraph?.nodeRoleLabels ?? {}}
                     layers={state.layers}
                     links={plannedLinks}
                     mapVisualPreference={state.mapVisualPreference}

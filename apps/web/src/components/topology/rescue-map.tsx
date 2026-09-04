@@ -50,6 +50,7 @@ function markerIcon(
     selected: boolean,
     taskHighlighted: boolean,
     keyNode: boolean,
+    taskRoleLabel: string | undefined,
     mode: RescueMapProps["mode"],
 ) {
     const classes = [
@@ -64,7 +65,7 @@ function markerIcon(
     return divIcon({
         className: styles.markerContainer,
         html: mode === "hybrid"
-            ? `<span class="${styles.hybridMarker}"><span class="${classes}">${markerSymbol[node.type]}</span><span class="${styles.hybridLabel}">${node.name}</span></span>`
+            ? `<span class="${styles.hybridMarker}"><span class="${classes}">${markerSymbol[node.type]}</span><span class="${styles.hybridLabel}">${node.name}${taskRoleLabel ? ` · ${taskRoleLabel}` : ""}</span></span>`
             : `<span class="${classes}">${markerSymbol[node.type]}</span>`,
         iconSize: mode === "hybrid" ? [120, 34] : [30, 30],
         iconAnchor: mode === "hybrid" ? [15, 17] : [15, 15],
@@ -143,6 +144,7 @@ export interface RescueMapProps {
     highlightedTaskNodeIds: string[];
     highlightedPathId: string | null;
     keyNodeIds: string[];
+    nodeRoleLabels: Record<string, string>;
     primaryLinkIds: string[];
     backupLinkIds: string[];
     layers: LayerVisibility;
@@ -164,6 +166,7 @@ export function RescueMap({
     highlightedTaskNodeIds,
     highlightedPathId,
     keyNodeIds,
+    nodeRoleLabels,
     primaryLinkIds,
     backupLinkIds,
     layers,
@@ -269,12 +272,13 @@ export function RescueMap({
                         selectedNodeId === node.id,
                         taskNodeIds.has(node.id),
                         keyNodes.has(node.id),
+                        nodeRoleLabels[node.id],
                         mode,
                     )}
                     key={node.id}
                     position={[node.latitude, node.longitude]}
                 >
-                    <Tooltip direction="top" offset={[0, -13]}>{`${node.name} · ${node.status}`}</Tooltip>
+                    <Tooltip direction="top" offset={[0, -13]}>{`${node.name} · ${nodeRoleLabels[node.id] ?? node.status}`}</Tooltip>
                 </Marker>
             ))}
         </MapContainer>

@@ -21,6 +21,7 @@ export type RescueFlowNodeData = {
     rescueNode: RescueNode;
     dimmed: boolean;
     isSubgraphKey: boolean;
+    taskRoleLabel?: string;
     visualPreference: MapVisualPreference;
     renderVariant: "card" | "compact";
 };
@@ -59,6 +60,7 @@ export interface TopologyAdaptOptions {
     highlightedTaskNodeIds: string[];
     highlightedPathId: string | null;
     keyNodeIds?: string[];
+    nodeRoleLabels?: Record<string, string>;
     primaryLinkIds: string[];
     backupLinkIds: string[];
     mapVisualPreference: MapVisualPreference;

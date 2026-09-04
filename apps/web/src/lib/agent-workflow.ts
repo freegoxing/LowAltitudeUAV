@@ -36,6 +36,7 @@ export interface MissionCommunicationSpecification {
 export interface PlannedTaskSubgraph {
     missionId: string;
     keyNodeIds: string[];
+    nodeRoleLabels: Record<string, string>;
     primaryLinkIds: string[];
     backupLinkIds: string[];
     links: CommunicationLink[];
@@ -81,6 +82,24 @@ function plannedLinksForPaths(
             isCritical: pathType === "primary",
         } satisfies CommunicationLink;
     }));
+}
+
+function missionNodeRoleLabels(mcs: MissionCommunicationSpecification) {
+    const labels: Record<string, string> = {};
+    const receiverRoleByPurpose: Record<MissionFlowRequirement["purpose"], string> = {
+        "搜救引导": "搜救组",
+        "医疗协同": "医疗组",
+        "态势同步": "指挥中心",
+    };
+
+    for (const flow of mcs.flows) {
+        if (flow.source.startsWith("UAV-S")) labels[flow.source] = "侦察感知";
+        for (const receiver of flow.receivers) {
+            labels[receiver] = receiverRoleByPurpose[flow.purpose];
+        }
+    }
+
+    return labels;
 }
 
 export function createAgentWorkflowDraft(
@@ -139,6 +158,7 @@ export function planMissionSubgraph(
     return {
         missionId: mcs.missionId,
         keyNodeIds: mcs.keyNodeIds,
+        nodeRoleLabels: missionNodeRoleLabels(mcs),
         primaryLinkIds: primaryLinks.map((link) => link.id),
         backupLinkIds: backupLinks.map((link) => link.id),
         links: [...primaryLinks, ...backupLinks],
