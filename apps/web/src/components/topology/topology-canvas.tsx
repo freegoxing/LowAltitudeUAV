@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
     Background,
@@ -15,7 +15,7 @@ import {
 
 import { mockMissionSubgraphs } from "@/data/mock-mission-subgraphs";
 import { mockTasks } from "@/data/mock-tasks";
-import { adaptTopology } from "@/lib/topology-adapters";
+import { adaptTopology, nearestHandles } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
 import { topologyGroupBounds, topologyGroups } from "@/lib/topology-layout";
 import { useTopologyStore } from "@/stores/use-topology-store";
@@ -66,9 +66,21 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
     const state = useTopologyStore();
     const [nodes, setNodes, onNodesChange] = useNodesState(incomingNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(incomingEdges);
-    const { fitView } = useReactFlow();
+    const { fitView, getNodes } = useReactFlow();
     const previousMode = useRef(mode);
     const previousViewRevision = useRef(viewRevision);
+    const updateEdgeHandles = useCallback(() => {
+        const positionsById = new Map(
+            getNodes().map((node) => [node.id, node.position]),
+        );
+        setEdges((currentEdges) => currentEdges.map((edge) => {
+            const source = positionsById.get(edge.source);
+            const target = positionsById.get(edge.target);
+            return source && target
+                ? { ...edge, ...nearestHandles(source, target) }
+                : edge;
+        }));
+    }, [getNodes, setEdges]);
 
     useEffect(() => {
         const shouldResetPositions = previousMode.current !== mode || previousViewRevision.current !== viewRevision;
@@ -102,6 +114,7 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
             maxZoom={2}
             nodesDraggable
             onNodeClick={(_, node) => state.selectNode(node.id)}
+            onNodeDragStop={updateEdgeHandles}
             onEdgeClick={(_, edge) => state.selectLink(edge.id)}
             onPaneClick={state.clearSelection}
             proOptions={{ hideAttribution: true }}

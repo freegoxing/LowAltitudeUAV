@@ -12,6 +12,23 @@ import type {
     TopologyAdaptOptions,
 } from "@/types/topology";
 
+type NodePosition = { x: number; y: number };
+
+export function nearestHandles(source: NodePosition, target: NodePosition) {
+    const deltaX = target.x - source.x;
+    const deltaY = target.y - source.y;
+
+    if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+        return deltaX >= 0
+            ? { sourceHandle: "source-right", targetHandle: "target-left" }
+            : { sourceHandle: "source-left", targetHandle: "target-right" };
+    }
+
+    return deltaY >= 0
+        ? { sourceHandle: "source-bottom", targetHandle: "target-top" }
+        : { sourceHandle: "source-top", targetHandle: "target-bottom" };
+}
+
 function getEmphasis(
     link: CommunicationLink,
     options: TopologyAdaptOptions,
@@ -53,6 +70,9 @@ export function adaptTopology(
         },
         draggable: true,
     }));
+    const positionsById = new Map(
+        flowNodes.map((node) => [node.id, node.position]),
+    );
     const edges = links.flatMap((link): CommunicationFlowEdge[] => {
         if (!nodeIds.has(link.source) || !nodeIds.has(link.target)) {
             if (process.env.NODE_ENV === "development") {
@@ -64,15 +84,22 @@ export function adaptTopology(
             }
             return [];
         }
+        const handles = nearestHandles(
+            positionsById.get(link.source)!,
+            positionsById.get(link.target)!,
+        );
         return [
             {
                 id: link.id,
                 source: link.source,
                 target: link.target,
                 type: "communicationLink",
+                ...handles,
                 data: {
                     link,
                     emphasis: getEmphasis(link, options),
+                    isPrimaryPath: options.primaryLinkIds.includes(link.id),
+                    isBackupPath: options.backupLinkIds.includes(link.id),
                     visualPreference: options.mapVisualPreference,
                 },
                 selectable: true,

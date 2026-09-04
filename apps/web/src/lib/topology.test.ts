@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { mockLinks } from "@/data/mock-links";
 import { mockNodes } from "@/data/mock-nodes";
-import { adaptTopology } from "@/lib/topology-adapters";
+import { adaptTopology, nearestHandles } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
 import { layoutTopology, topologyGroupForType } from "@/lib/topology-layout";
 import type { CommunicationLink } from "@/types/rescue";
@@ -91,11 +91,45 @@ test("edge emphasis follows selection, task, primary, backup priority", () => {
     const emphasis = new Map(
         result.edges.map((edge) => [edge.id, edge.data.emphasis]),
     );
+    const edges = new Map(result.edges.map((edge) => [edge.id, edge]));
 
     assert.equal(emphasis.get("uav-link-21-BS-4-UAV-R-5"), "primary");
     assert.equal(emphasis.get("uav-link-59-UAV-R-5-UAV-M-3"), "primary");
     assert.equal(emphasis.get("uav-link-89-UAV-M-10-GND-P-2"), "selected");
     assert.equal(emphasis.get("uav-link-1-GND-C-1-BS-1"), "muted");
+    assert.equal(
+        edges.get("uav-link-21-BS-4-UAV-R-5")?.data.isPrimaryPath,
+        true,
+    );
+    assert.equal(
+        edges.get("uav-link-89-UAV-M-10-GND-P-2")?.data.isBackupPath,
+        true,
+    );
+});
+
+test("topology edges use the nearest sides of their endpoint cards", () => {
+    const result = adaptTopology(mockNodes, mockLinks, {
+        mode: "topology",
+        selectedLinkId: null,
+        highlightedTaskNodeIds: [],
+        highlightedPathId: null,
+        primaryLinkIds: [],
+        backupLinkIds: [],
+        mapVisualPreference: "nodePriority",
+    });
+    const edge = result.edges.find(
+        (item) => item.id === "uav-link-1-GND-C-1-BS-1",
+    );
+
+    assert.equal(edge?.sourceHandle, "source-right");
+    assert.equal(edge?.targetHandle, "target-left");
+});
+
+test("nearest handles prefer the top and bottom sides for vertical paths", () => {
+    assert.deepEqual(
+        nearestHandles({ x: 100, y: 80 }, { x: 120, y: 360 }),
+        { sourceHandle: "source-bottom", targetHandle: "target-top" },
+    );
 });
 
 test("marks routing subgraph key nodes independently from normal task nodes", () => {

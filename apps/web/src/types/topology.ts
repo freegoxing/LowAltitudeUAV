@@ -28,6 +28,8 @@ export type RescueFlowNodeData = {
 export type CommunicationFlowEdgeData = {
     link: CommunicationLink;
     emphasis: PathEmphasis;
+    isPrimaryPath: boolean;
+    isBackupPath: boolean;
     visualPreference: MapVisualPreference;
 };
 

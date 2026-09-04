@@ -42,13 +42,22 @@ export function RescueNode({ data, selected }: NodeProps<RescueFlowNode>) {
     const Icon = nodeIcons[node.type] ?? Ambulance;
     const keyStatus = node.battery != null ? `电量 ${node.battery}%` : `${node.load}% 负载`;
     const isCompact = data.renderVariant === "compact";
+    const handlePositions = [Position.Top, Position.Right, Position.Bottom, Position.Left];
 
     return (
         <article
             className={`${styles.node} ${isCompact ? styles.nodeCompact : styles.nodeCard} ${data.visualPreference === "nodePriority" ? styles.nodePriority : styles.nodeMapPriority} ${selected ? styles.nodeSelected : ""} ${data.dimmed ? styles.dimmed : ""} ${data.isSubgraphKey ? styles.subgraphKey : ""} ${node.isCritical ? styles.criticalNode : ""}`}
             title={`${node.name} · ${statusText[node.status]} · ${keyStatus}`}
         >
-            <Handle type="target" position={Position.Left} className={styles.handle} />
+            {handlePositions.map((position) => (
+                <Handle
+                    className={styles.handle}
+                    id={`target-${position}`}
+                    key={`target-${position}`}
+                    position={position}
+                    type="target"
+                />
+            ))}
             <div className={styles.nodeHead}>
                 <span className={styles.nodeIcon}><Icon size={14} /></span>
                 <strong>{node.name}</strong>
@@ -65,7 +74,15 @@ export function RescueNode({ data, selected }: NodeProps<RescueFlowNode>) {
                     <span>{keyStatus}</span>
                 </div>
             )}
-            <Handle type="source" position={Position.Right} className={styles.handle} />
+            {handlePositions.map((position) => (
+                <Handle
+                    className={styles.handle}
+                    id={`source-${position}`}
+                    key={`source-${position}`}
+                    position={position}
+                    type="source"
+                />
+            ))}
         </article>
     );
 }
