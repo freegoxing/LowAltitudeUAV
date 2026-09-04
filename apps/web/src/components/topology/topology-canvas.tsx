@@ -201,7 +201,7 @@ export function TopologyCanvas() {
                     {state.nodes.length > 0 && <button onClick={state.resetFilters}>清除筛选</button>}
                 </div>
             )}
-            <TopologyLegend />
+            {state.viewMode === "topology" && <TopologyLegend />}
         </div>
     );
 }
