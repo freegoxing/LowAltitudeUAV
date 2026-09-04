@@ -7,6 +7,7 @@ import {
     BackgroundVariant,
     Controls,
     ReactFlow,
+    ViewportPortal,
     useEdgesState,
     useNodesState,
     useReactFlow,
@@ -16,6 +17,7 @@ import { mockPlanningResult } from "@/data/mock-planning-result";
 import { mockTasks } from "@/data/mock-tasks";
 import { adaptTopology } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
+import { topologyGroupBounds, topologyGroups } from "@/lib/topology-layout";
 import { useTopologyStore } from "@/stores/use-topology-store";
 import type { ViewMode } from "@/types/dashboard";
 import type { CommunicationFlowEdge, RescueFlowNode } from "@/types/topology";
@@ -39,6 +41,25 @@ interface SceneProps {
     mode: ViewMode;
     viewRevision: number;
     centerRevision: number;
+}
+
+function TopologyGroups() {
+    return (
+        <ViewportPortal>
+            {topologyGroups.map((group) => {
+                const bounds = topologyGroupBounds(group);
+                return (
+                    <div
+                        className={styles.topologyGroup}
+                        key={group.id}
+                        style={{ height: bounds.height, left: bounds.x, top: bounds.y, width: bounds.width }}
+                    >
+                        <span>{group.label}</span>
+                    </div>
+                );
+            })}
+        </ViewportPortal>
+    );
 }
 
 function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, centerRevision }: SceneProps) {
@@ -86,6 +107,7 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
             proOptions={{ hideAttribution: true }}
             colorMode="light"
         >
+            {mode === "topology" && <TopologyGroups />}
             {mode === "topology" && <Background color="#dfe5ec" gap={24} size={1} variant={BackgroundVariant.Dots} />}
             <Controls position="bottom-right" showInteractive={false} />
         </ReactFlow>

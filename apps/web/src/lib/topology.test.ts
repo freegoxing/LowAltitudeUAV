@@ -5,7 +5,7 @@ import { mockLinks } from "@/data/mock-links";
 import { mockNodes } from "@/data/mock-nodes";
 import { adaptTopology } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
-import { layoutTopology } from "@/lib/topology-layout";
+import { layoutTopology, topologyGroupForType } from "@/lib/topology-layout";
 import type { CommunicationLink } from "@/types/rescue";
 import { defaultTopologyFilters } from "@/types/topology";
 
@@ -57,6 +57,23 @@ test("layout is deterministic and preserves input values", () => {
     assert.deepEqual(first, second);
     assert.notDeepEqual(first[0].position, mockNodes[0].position);
     assert.deepEqual(mockNodes[0].position, { x: 10, y: 14 });
+});
+
+test("topology layout groups assets in a stable two-by-three functional grid", () => {
+    const layout = layoutTopology(mockNodes);
+    const byId = new Map(layout.map((node) => [node.id, node]));
+
+    assert.equal(topologyGroupForType("command_vehicle"), "command");
+    assert.equal(topologyGroupForType("temporary_base_station"), "infrastructure");
+    assert.equal(topologyGroupForType("relay_drone"), "airNetwork");
+    assert.equal(topologyGroupForType("mission_drone"), "mission");
+    assert.equal(topologyGroupForType("rescue_team"), "groundRescue");
+    assert.equal(topologyGroupForType("trapped_area"), "supportRisk");
+    assert.ok(byId.get("GND-C-1")!.position.x < byId.get("BS-1")!.position.x);
+    assert.ok(byId.get("BS-1")!.position.x < byId.get("UAV-R-1")!.position.x);
+    assert.ok(byId.get("UAV-M-1")!.position.y > byId.get("UAV-R-1")!.position.y);
+    assert.ok(byId.get("GND-P-1")!.position.x > byId.get("UAV-M-1")!.position.x);
+    assert.deepEqual(layout, layoutTopology(mockNodes));
 });
 
 test("edge emphasis follows selection, task, primary, backup priority", () => {
