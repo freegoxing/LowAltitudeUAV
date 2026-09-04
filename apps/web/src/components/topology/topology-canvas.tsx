@@ -13,7 +13,7 @@ import {
     useReactFlow,
 } from "@xyflow/react";
 
-import { mockPlanningResult } from "@/data/mock-planning-result";
+import { mockMissionSubgraphs } from "@/data/mock-mission-subgraphs";
 import { mockTasks } from "@/data/mock-tasks";
 import { adaptTopology } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
@@ -117,6 +117,9 @@ function TopologyScene({ incomingNodes, incomingEdges, mode, viewRevision, cente
 export function TopologyCanvas() {
     const state = useTopologyStore();
     const task = mockTasks.find((item) => item.id === state.highlightedTaskId);
+    const taskSubgraph = state.highlightedTaskId
+        ? mockMissionSubgraphs[state.highlightedTaskId]
+        : undefined;
     const filtered = useMemo(
         () => filterTopology(state.nodes, state.links, state.filters),
         [state.nodes, state.links, state.filters],
@@ -133,11 +136,11 @@ export function TopologyCanvas() {
             selectedLinkId: state.selectedLinkId,
             highlightedTaskNodeIds,
             highlightedPathId: state.layers.tasks ? state.highlightedPathId : null,
-            primaryLinkIds: mockPlanningResult.primarySubgraphLinkIds,
-            backupLinkIds: mockPlanningResult.backupSubgraphLinkIds,
+            primaryLinkIds: taskSubgraph?.primaryLinkIds ?? [],
+            backupLinkIds: taskSubgraph?.backupLinkIds ?? [],
             mapVisualPreference: state.mapVisualPreference,
         });
-    }, [filtered, highlightedTaskNodeIds, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, state.selectedLinkId, state.viewMode]);
+    }, [filtered, highlightedTaskNodeIds, state.highlightedPathId, state.layers.tasks, state.mapVisualPreference, state.selectedLinkId, state.viewMode, taskSubgraph]);
     const visibleNodes = state.layers.nodes ? flow.nodes : [];
     const visibleEdges = state.layers.links ? flow.edges : [];
 
