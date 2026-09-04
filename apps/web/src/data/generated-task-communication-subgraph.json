@@ -3,6 +3,12 @@
     "mission_id": "SAR-FIRE-001",
     "mission_type": "TASK-SAR",
     "mission_priority": 5,
+    "candidate_groups": [
+      {"group_id": "sensing", "label": "侦察感知", "node_ids": ["UAV-S-1", "UAV-R-3", "UAV-R-7"]},
+      {"group_id": "search", "label": "搜救组", "node_ids": ["GND-P-1", "UAV-M-2", "UAV-R-1"]},
+      {"group_id": "medical", "label": "医疗组", "node_ids": ["GND-P-2", "UAV-M-4", "UAV-M-5", "UAV-R-6"]},
+      {"group_id": "command", "label": "指挥中心", "node_ids": ["GND-C-1", "BS-4", "UAV-R-1"]}
+    ],
     "key_nodes": [
       "UAV-S-1",
       "GND-P-1",
@@ -316,5 +322,6 @@
     "F-1": "GND-P-1",
     "F-2": "GND-P-2",
     "F-3": "GND-C-1"
-  }
+  },
+  "selected_key_nodes": ["UAV-S-1", "GND-P-1", "GND-P-2", "GND-C-1"]
 }

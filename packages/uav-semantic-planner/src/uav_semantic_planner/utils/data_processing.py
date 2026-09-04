@@ -35,6 +35,23 @@ RelationMap = dict[str, int]
 NodeMap = dict[int, str]
 
 
+def candidate_group_features(
+    kg_data: KnowledgeGraph, node_map: NodeMap
+) -> tuple[list[str], torch.Tensor]:
+    """生成节点对任务候选标签的多热特征，供 HGT 编码任务角色上下文。"""
+    groups = kg_data.get("mission_candidate_groups", [])
+    group_ids = [str(group["group_id"]) for group in groups]
+    features = torch.zeros((len(node_map), len(group_ids)), dtype=torch.float32)
+    raw_id_to_int = {raw_id: int_id for int_id, raw_id in node_map.items()}
+
+    for group_index, group in enumerate(groups):
+        for node_id in group.get("node_ids", []):
+            if node_id in raw_id_to_int:
+                features[raw_id_to_int[node_id], group_index] = 1.0
+
+    return group_ids, features
+
+
 def pyg_to_cugraph(pyg_data: Data, directed: bool = True) -> Any | None:
     """将 PyG Data 转换为 cuGraph (GPU加速)"""
     if not HAS_CUGRAPH or pyg_data.edge_index.device.type != "cuda":

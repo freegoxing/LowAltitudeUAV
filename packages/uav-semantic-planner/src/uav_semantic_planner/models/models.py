@@ -32,14 +32,20 @@ class UAVHGTEncoder(nn.Module):
         use_dropout: bool = True,
         use_multihead: bool = True,
         node_types_order: list[str] | None = None,
+        candidate_group_count: int = 0,
     ):
         super().__init__()
         self.use_weak_link_injection = use_weak_link_injection
         self.use_layer_norm = use_layer_norm
         self.use_dropout = use_dropout
+        self.candidate_group_projection = (
+            nn.Linear(candidate_group_count, embedding_dim, bias=False)
+            if candidate_group_count > 0
+            else None
+        )
 
         # 默认使用 UAV 领域的节点类型排序
-        default_order = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P"]
+        default_order = ["GND-C", "BS", "UAV-R", "UAV-M", "GND-P", "UAV-S"]
         self.node_types_order = node_types_order or default_order
 
         # 确定头数
@@ -71,6 +77,7 @@ class UAVHGTEncoder(nn.Module):
         x_dict: dict[str, torch.Tensor],
         edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
         weak_link_index: torch.Tensor | None = None,
+        candidate_group_features: dict[str, torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
         """
         向量化前向传播：Embedding -> Weak Link Injection -> HGT Layers
@@ -82,6 +89,13 @@ class UAVHGTEncoder(nn.Module):
             device = x_dict[nt].device
             num_nodes = self.node_emb_dict[nt].num_embeddings
             h_dict[nt] = self.node_emb_dict[nt](torch.arange(num_nodes, device=device))
+
+        if self.candidate_group_projection is not None and candidate_group_features:
+            for nt, features in candidate_group_features.items():
+                if nt in h_dict:
+                    h_dict[nt] = h_dict[nt] + self.candidate_group_projection(
+                        features.to(h_dict[nt].device)
+                    )
 
         # 2. 弱链路惩罚注入 (Weak Link Injection)
         # 将被标记为弱链路（SNR差或预警）的影响注入节点嵌入中

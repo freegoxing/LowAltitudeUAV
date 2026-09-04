@@ -34,6 +34,7 @@ class MissionFlowSpec:
     delivery_mode: str = "anycast"
     command_sync: str = "summary"
     deadline: str | None = None
+    receiver_group_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -48,6 +49,23 @@ class MissionFlowSpec:
             "delivery_mode": self.delivery_mode,
             "command_sync": self.command_sync,
             "deadline": self.deadline,
+            "receiver_group_id": self.receiver_group_id,
+        }
+
+
+@dataclass(slots=True)
+class MissionCandidateGroup:
+    """一个业务标签下可供规划器选择的通信节点集合。"""
+
+    group_id: str
+    label: str
+    node_ids: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "group_id": self.group_id,
+            "label": self.label,
+            "node_ids": list(self.node_ids),
         }
 
 
@@ -58,8 +76,9 @@ class MissionCommunicationSpecification:
     mission_id: str
     mission_type: str
     mission_priority: int
-    key_nodes: list[str]
     mission_flows: list[MissionFlowSpec]
+    candidate_groups: list[MissionCandidateGroup] = field(default_factory=list)
+    key_nodes: list[str] = field(default_factory=list)
     resource_budget: dict[str, Any] = field(default_factory=dict)
     backup_requirement: dict[str, int] = field(default_factory=dict)
     healing_policy: dict[str, Any] = field(default_factory=dict)
@@ -70,13 +89,22 @@ class MissionCommunicationSpecification:
             "mission_id": self.mission_id,
             "mission_type": self.mission_type,
             "mission_priority": self.mission_priority,
-            "key_nodes": list(self.key_nodes),
+            "candidate_groups": [group.to_dict() for group in self.candidate_groups],
             "mission_flows": [flow.to_dict() for flow in self.mission_flows],
             "resource_budget": dict(self.resource_budget),
             "backup_requirement": dict(self.backup_requirement),
             "healing_policy": dict(self.healing_policy),
             "command_receiver": self.command_receiver,
         }
+
+    def receivers_for(self, flow: MissionFlowSpec) -> list[str]:
+        """返回业务流可选终点；标签组优先于旧版显式 receivers。"""
+        if flow.receiver_group_id is None:
+            return list(flow.receivers)
+        for group in self.candidate_groups:
+            if group.group_id == flow.receiver_group_id:
+                return list(group.node_ids)
+        raise ValueError(f"未知候选节点标签: {flow.receiver_group_id}")
 
 
 class UAVRoutingPlanner:
@@ -160,6 +188,7 @@ class UAVRoutingPlanner:
             hidden_channels=embedding_dim,
             out_channels=embedding_dim,
             metadata=checkpoint["metadata"],
+            candidate_group_count=len(checkpoint.get("candidate_group_ids", [])),
         ).to(self.device)
         encoder.load_state_dict(saved_model["encoder_state_dict"])
         encoder.eval()
@@ -169,6 +198,7 @@ class UAVRoutingPlanner:
                 checkpoint["x_dict_ids"],
                 checkpoint["edge_index_dict"],
                 checkpoint.get("weak_link_index"),
+                checkpoint.get("candidate_group_features_by_type"),
             )
             self.node_embeddings = torch.zeros(
                 total_nodes, embedding_dim, device=self.device
@@ -426,13 +456,15 @@ class UAVRoutingPlanner:
         flow_results: list[dict[str, Any]] = []
         subgraph_edges: set[tuple[str, str]] = set()
         relay_nodes: set[str] = set()
+        selected_key_nodes: set[str] = set()
 
         for flow in mission.mission_flows:
             try:
+                candidate_receivers = mission.receivers_for(flow)
                 selected_receiver = self._select_flow_receiver(
                     nx_graph=nx_graph,
                     source_name=flow.source,
-                    candidates=flow.receivers,
+                    candidates=candidate_receivers,
                     command_receiver=mission.command_receiver,
                     command_sync=flow.command_sync,
                 )
@@ -442,6 +474,7 @@ class UAVRoutingPlanner:
                         "flow": flow.to_dict(),
                         "status": "unreachable",
                         "selected_receiver": "",
+                        "candidate_receivers": [],
                         "primary_path": [],
                         "primary_min_snr": 0.0,
                         "backup_paths": [],
@@ -465,6 +498,7 @@ class UAVRoutingPlanner:
             for path in [primary_path, *selected_backup_paths]:
                 subgraph_edges.update(zip(path[:-1], path[1:], strict=False))
                 relay_nodes.update(node for node in path[1:-1])
+            selected_key_nodes.update({flow.source, selected_receiver})
 
             reserved_resources = {
                 "bandwidth_budget": mission.resource_budget.get(
@@ -481,6 +515,7 @@ class UAVRoutingPlanner:
                     "flow": flow.to_dict(),
                     "status": route_result["status"],
                     "selected_receiver": selected_receiver,
+                    "candidate_receivers": candidate_receivers,
                     "primary_path": primary_path,
                     "primary_min_snr": route_result["primary_min_snr"],
                     "backup_paths": selected_backup_paths,
@@ -495,7 +530,7 @@ class UAVRoutingPlanner:
             "flow_results": flow_results,
             "task_communication_subgraph": {
                 "nodes": sorted(
-                    set(mission.key_nodes)
+                    selected_key_nodes
                     | relay_nodes
                     | {item["flow"]["source"] for item in flow_results}
                     | {
@@ -506,6 +541,7 @@ class UAVRoutingPlanner:
                 ),
                 "edges": sorted(subgraph_edges),
             },
+            "selected_key_nodes": sorted(selected_key_nodes),
             "selected_receivers": {
                 item["flow"]["flow_id"]: item["selected_receiver"]
                 for item in flow_results

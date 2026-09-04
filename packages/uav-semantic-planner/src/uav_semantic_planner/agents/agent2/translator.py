@@ -8,6 +8,7 @@ HGT感知 -> Agent 1 态势评级 -> Agent 2 任务与参数翻译 -> RL 路由�
 import random
 
 from uav_semantic_planner.utils import (
+    MissionCandidateGroup,
     MissionCommunicationSpecification,
     MissionFlowSpec,
 )
@@ -91,7 +92,7 @@ class MockAgent2_DecisionTranslator:
 
     @staticmethod
     def translate_to_mission_spec(
-        situation_level: str, task_type: str
+        situation_level: str, task_type: str, candidate_groups: list[dict]
     ) -> MissionCommunicationSpecification:
         """生成与设计文档一致的任务通信规范（MCS）示例。"""
         print("\n[🤖 Agent 2 任务通信规范生成中...]")
@@ -102,12 +103,20 @@ class MockAgent2_DecisionTranslator:
             mission_id="SAR-FIRE-001",
             mission_type="TASK-SAR",
             mission_priority=5,
-            key_nodes=["UAV-S-1", "GND-P-1", "GND-P-2", "GND-C-1"],
+            candidate_groups=[
+                MissionCandidateGroup(
+                    group_id=group["group_id"],
+                    label=group["label"],
+                    node_ids=group["node_ids"],
+                )
+                for group in candidate_groups
+            ],
             mission_flows=[
                 MissionFlowSpec(
                     flow_id="F-1",
                     source="UAV-S-1",
-                    receivers=["GND-P-1"],
+                    receivers=[],
+                    receiver_group_id="search",
                     purpose="搜救引导",
                     priority=5,
                     bandwidth_req="15 Mbps",
@@ -119,7 +128,8 @@ class MockAgent2_DecisionTranslator:
                 MissionFlowSpec(
                     flow_id="F-2",
                     source="UAV-S-1",
-                    receivers=["GND-P-2"],
+                    receivers=[],
+                    receiver_group_id="medical",
                     purpose="医疗协同",
                     priority=4,
                     bandwidth_req="8 Mbps",
@@ -131,7 +141,8 @@ class MockAgent2_DecisionTranslator:
                 MissionFlowSpec(
                     flow_id="F-3",
                     source="GND-P-1",
-                    receivers=["GND-C-1"],
+                    receivers=[],
+                    receiver_group_id="command",
                     purpose="态势同步",
                     priority=2,
                     bandwidth_req="2 Mbps",

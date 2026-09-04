@@ -94,6 +94,18 @@ def load_uav_network_graph(file_path: str) -> KnowledgeGraph:
 
     nodes = data["nodes"]
     edges = data["edges"]
+    node_ids = {node.get("id") for node in nodes}
+    candidate_group_ids: set[str] = set()
+    for group in data.get("mission_candidate_groups", []):
+        group_id = group.get("group_id")
+        if not group_id or group_id in candidate_group_ids:
+            raise ValueError("mission_candidate_groups 必须包含唯一的 group_id")
+        candidate_group_ids.add(group_id)
+        unknown_nodes = set(group.get("node_ids", [])) - node_ids
+        if unknown_nodes:
+            raise ValueError(
+                f"候选节点标签 '{group_id}' 引用了不存在的节点: {sorted(unknown_nodes)}"
+            )
 
     # 节点类型校验
     node_types_found = {n.get("type") for n in nodes}
