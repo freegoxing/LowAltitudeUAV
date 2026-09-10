@@ -32,6 +32,43 @@ test("target-centric missions bind discovery nodes, action receivers, and planne
     assert.ok(mockTasks.every((task) => mockMissionSubgraphs[task.id]));
 });
 
+test("rescue task copy identifies concrete locations around Yingxiu Town", () => {
+    assert.deepEqual(
+        mockTasks.map((task) => [
+            task.id,
+            task.name,
+            task.target.positionLabel,
+            task.region,
+        ]),
+        [
+            [
+                "t-1",
+                "映秀镇老街北侧滑坡带失联人员搜救",
+                "映秀镇老街北侧滑坡带",
+                "映秀镇北侧救援区",
+            ],
+            [
+                "t-2",
+                "岷江河谷映秀镇东侧临时通信覆盖",
+                "岷江河谷—映秀镇东侧通信盲区",
+                "映秀镇东侧通信保障区",
+            ],
+            [
+                "t-3",
+                "映秀镇安置点医疗物资定点投送",
+                "映秀镇安置点（213 国道沿线）",
+                "映秀镇安置保障区",
+            ],
+            [
+                "t-4",
+                "漩口镇方向山体灾情侦察",
+                "漩口镇方向山体风险区",
+                "映秀镇西北侧侦察区",
+            ],
+        ],
+    );
+});
+
 test("the default rescue mission visualizes the routing planner's selected subgraph", () => {
     const plannerKeyNodes = ["UAV-S-1", "GND-P-1", "GND-P-2", "GND-C-1"];
     const linkIds = new Set(mockLinks.map((link) => link.id));
