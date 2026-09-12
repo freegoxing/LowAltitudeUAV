@@ -1,4 +1,5 @@
 import { topologyGroupForType, topologyGroups } from "@/lib/topology-layout";
+import { topologyLegendItems } from "@/lib/topology-legend-data";
 import type {
     CommunicationFlowEdge,
     PathEmphasis,
@@ -85,6 +86,28 @@ function linkPath(source: Point, target: Point) {
     return `M ${sourceEnd.x} ${sourceEnd.y} C ${sourceControl.x} ${sourceControl.y}, ${targetControl.x} ${targetControl.y}, ${targetEnd.x} ${targetEnd.y}`;
 }
 
+function exportLegend() {
+    const origin = { x: 800, y: 402, width: 660, height: 54 };
+    const styles = {
+        primary: { color: "#f43f5e", width: 2.6, dash: "" },
+        backup: { color: "#f59e0b", width: 2.4, dash: "7 4" },
+        context: { color: "#94a3b8", width: 1.2, dash: "" },
+        selectedLink: { color: "#1d4ed8", width: 3, dash: "" },
+        keyNode: { color: "#f5b700", width: 2, dash: "" },
+        selectedNode: { color: "#2563eb", width: 2, dash: "" },
+    } as const;
+    const items = topologyLegendItems.map((item, index) => {
+        const x = origin.x + 14 + (index % 3) * 215;
+        const y = origin.y + 18 + Math.floor(index / 3) * 25;
+        const style = styles[item.id];
+        const symbol = item.nodeMarker
+            ? `<circle cx="${x + 7}" cy="${y - 3}" r="5" fill="#fff" stroke="${style.color}" stroke-width="${style.width}"/>`
+            : `<line x1="${x}" y1="${y - 3}" x2="${x + 16}" y2="${y - 3}" stroke="${style.color}" stroke-width="${style.width}"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""}${item.id === "context" ? " opacity=\"0.55\"" : ""}/>`;
+        return `${symbol}<text x="${x + 23}" y="${y}" fill="#475569" font-size="10">${xml(item.label)}</text>`;
+    }).join("");
+    return `<g class="topology-legend"><rect x="${origin.x}" y="${origin.y}" width="${origin.width}" height="${origin.height}" rx="8" fill="#ffffff" fill-opacity="0.94" stroke="#cbd5e1"/>${items}</g>`;
+}
+
 export function createTopologySvg(nodes: RescueFlowNode[], edges: CommunicationFlowEdge[]): string {
     const positions = exportPositions(nodes);
     const groups = topologyGroups.map((item, index) => {
@@ -106,6 +129,7 @@ export function createTopologySvg(nodes: RescueFlowNode[], edges: CommunicationF
         const status = rescueNode.status === "online" ? "在线" : rescueNode.status === "busy" ? "忙碌" : rescueNode.status === "warning" ? "告警" : "离线";
         return `<g class="topology-node"><rect class="topology-node" x="${position.x}" y="${position.y}" width="${card.width}" height="${card.height}" rx="7" fill="${fill}" stroke="${border}"${node.data.isSubgraphKey ? " stroke-width=\"2\"" : ""}/><text x="${position.x + 8}" y="${position.y + 18}" fill="#1e293b" font-size="10" font-weight="700">${xml(rescueNode.name)}</text><text x="${position.x + 8}" y="${position.y + 34}" fill="#64748b" font-size="8">${xml(status)} · ${rescueNode.battery != null ? `电量 ${rescueNode.battery}%` : `${rescueNode.load}% 负载`}</text></g>`;
     }).join("");
+    const legend = exportLegend();
 
-    return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><title>低空应急救援通信拓扑</title><rect width="100%" height="100%" fill="#ffffff"/>${groups}${links}${nodeCards}</svg>`;
+    return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><title>低空应急救援通信拓扑</title><rect width="100%" height="100%" fill="#ffffff"/>${groups}${links}${nodeCards}${legend}</svg>`;
 }
