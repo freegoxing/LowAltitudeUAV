@@ -1,5 +1,9 @@
-import { Crosshair, Filter, Focus, RotateCcw } from "lucide-react";
+import { Crosshair, Download, Filter, Focus, RotateCcw } from "lucide-react";
 
+import { adaptTopology } from "@/lib/topology-adapters";
+import { filterTopology } from "@/lib/topology-filters";
+import { createTopologySvg } from "@/lib/topology-svg-export";
+import { useAgentWorkflowStore } from "@/stores/use-agent-workflow-store";
 import { useTopologyStore } from "@/stores/use-topology-store";
 import type { MapVisualPreference, ViewMode } from "@/types/dashboard";
 import type { LinkStatus, LinkType, NodeStatus, RescueNodeType } from "@/types/rescue";
@@ -31,6 +35,35 @@ function toggleValue<T extends string>(values: T[], value: T) {
 
 export function TopologyToolbar() {
     const state = useTopologyStore();
+    const plannedSubgraph = useAgentWorkflowStore((workflow) => workflow.plannedSubgraph);
+    const exportSvg = () => {
+        const filtered = filterTopology(state.nodes, state.links, state.filters);
+        const plannedLinks = plannedSubgraph?.links ?? [];
+        const highlightedTaskNodeIds = state.layers.tasks && plannedSubgraph
+            ? [...plannedSubgraph.keyNodeIds, ...plannedLinks.flatMap((link) => [link.source, link.target])]
+            : [];
+        const flow = adaptTopology(filtered.nodes, plannedLinks, {
+            mode: "topology",
+            selectedLinkId: state.selectedLinkId,
+            highlightedTaskNodeIds,
+            highlightedPathId: null,
+            keyNodeIds: plannedSubgraph?.keyNodeIds,
+            nodeRoleLabels: plannedSubgraph?.nodeRoleLabels,
+            primaryLinkIds: plannedSubgraph?.primaryLinkIds ?? [],
+            backupLinkIds: plannedSubgraph?.backupLinkIds ?? [],
+            mapVisualPreference: state.mapVisualPreference,
+        });
+        const svg = createTopologySvg(
+            state.layers.nodes ? flow.nodes : [],
+            state.layers.links ? flow.edges : [],
+        );
+        const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `uav-topology-${new Date().toISOString().replaceAll(":", "-").slice(0, 19)}.svg`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    };
     return (
         <header className={styles.toolbar}>
             <div className={styles.toolbarTitle}><strong>态势工作区</strong><span>{state.nodes.length} 节点 · {state.links.length} 链路</span></div>
@@ -61,6 +94,7 @@ export function TopologyToolbar() {
                 </div>
             </details>
             <div className={styles.actions}>
+                {state.viewMode === "topology" && <button aria-label="导出 SVG" className={styles.exportSvg} title="导出 SVG" onClick={exportSvg}><Download size={14} /><span>导出 SVG</span></button>}
                 <button aria-label="自动布局" title="自动布局" onClick={() => { state.setViewMode("topology"); state.resetView(); }}><Focus size={14} /></button>
                 <button aria-label="居中视图" title="居中视图" onClick={state.centerView}><Crosshair size={14} /></button>
                 <button aria-label="重置视图" title="重置视图" onClick={state.resetView}><RotateCcw size={14} /></button>
