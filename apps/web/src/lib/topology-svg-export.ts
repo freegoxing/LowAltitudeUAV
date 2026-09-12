@@ -10,6 +10,7 @@ const group = { width: 470, height: 215, gapX: 20, gapY: 20, margin: 20 };
 const card = { width: 100, height: 45 };
 
 type Point = { x: number; y: number };
+type GroupBounds = { x: number; y: number; width: number; height: number };
 
 const xml = (value: string | number) => String(value)
     .replaceAll("&", "&amp;")
@@ -18,17 +19,36 @@ const xml = (value: string | number) => String(value)
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 
+function exportGroupBounds(index: number): GroupBounds {
+    if (index < 3) {
+        return {
+            x: group.margin + index * (group.width + group.gapX),
+            y: group.margin,
+            width: group.width,
+            height: group.height,
+        };
+    }
+    return {
+        x: index === 3 ? group.margin : 760,
+        y: group.margin + group.height + group.gapY,
+        width: 720,
+        height: group.height,
+    };
+}
+
 function exportPositions(nodes: RescueFlowNode[]) {
     const grouped = new Map(topologyGroups.map((item) => [item.id, [] as RescueFlowNode[]]));
     nodes.forEach((node) => grouped.get(topologyGroupForType(node.data.rescueNode.type))?.push(node));
 
     return new Map(nodes.map((node) => {
         const groupId = topologyGroupForType(node.data.rescueNode.type);
-        const definition = topologyGroups.find((item) => item.id === groupId)!;
+        const groupIndex = topologyGroups.findIndex((item) => item.id === groupId);
+        const bounds = exportGroupBounds(groupIndex);
         const index = grouped.get(groupId)!.findIndex((item) => item.id === node.id);
+        const columns = bounds.width > group.width ? 6 : 4;
         return [node.id, {
-            x: group.margin + definition.column * (group.width + group.gapX) + 14 + (index % 4) * 112,
-            y: group.margin + definition.row * (group.height + group.gapY) + 40 + Math.floor(index / 4) * 55,
+            x: bounds.x + 14 + (index % columns) * ((bounds.width - card.width - 28) / (columns - 1)),
+            y: bounds.y + 40 + Math.floor(index / columns) * 55,
         }];
     }));
 }
@@ -67,10 +87,9 @@ function linkPath(source: Point, target: Point) {
 
 export function createTopologySvg(nodes: RescueFlowNode[], edges: CommunicationFlowEdge[]): string {
     const positions = exportPositions(nodes);
-    const groups = topologyGroups.map((item) => {
-        const x = group.margin + item.column * (group.width + group.gapX);
-        const y = group.margin + item.row * (group.height + group.gapY);
-        return `<g class="topology-group"><rect x="${x}" y="${y}" width="${group.width}" height="${group.height}" rx="12" fill="#f8fafc" stroke="#cbd5e1"/><text x="${x + 14}" y="${y + 25}" fill="#475569" font-size="13" font-weight="700">${xml(item.label)}</text></g>`;
+    const groups = topologyGroups.map((item, index) => {
+        const bounds = exportGroupBounds(index);
+        return `<g class="topology-group"><rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" rx="12" fill="#f8fafc" stroke="#cbd5e1"/><text x="${bounds.x + 14}" y="${bounds.y + 25}" fill="#475569" font-size="13" font-weight="700">${xml(item.label)}</text></g>`;
     }).join("");
     const links = edges.flatMap((edge) => {
         const source = positions.get(edge.source);

@@ -25,4 +25,5 @@ test("creates a 3:1 complete SVG with export-specific positions", () => {
     assert.match(svg, /<path[^>]+class="topology-link"/);
     assert.match(svg, /<path[^>]+d="M [^"]+ C [^"]+"/);
     assert.match(svg, />指挥调度</);
+    assert.match(svg, /<rect x="760" y="255" width="720" height="215"/);
 });
