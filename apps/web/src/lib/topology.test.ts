@@ -5,7 +5,7 @@ import { mockLinks } from "@/data/mock-links";
 import { mockNodes } from "@/data/mock-nodes";
 import { adaptTopology, nearestHandles } from "@/lib/topology-adapters";
 import { filterTopology } from "@/lib/topology-filters";
-import { layoutTopology, topologyGroupForType } from "@/lib/topology-layout";
+import { layoutTopology, topologyGroupForType, topologyGroups } from "@/lib/topology-layout";
 import { topologyLegendItems } from "@/lib/topology-legend-data";
 import type { CommunicationLink } from "@/types/rescue";
 import { defaultTopologyFilters } from "@/types/topology";
@@ -64,12 +64,12 @@ test("topology layout groups assets in a stable two-by-three functional grid", (
     const layout = layoutTopology(mockNodes);
     const byId = new Map(layout.map((node) => [node.id, node]));
 
+    assert.equal(topologyGroups.some((group) => group.id === "supportRisk"), false);
     assert.equal(topologyGroupForType("command_vehicle"), "command");
     assert.equal(topologyGroupForType("temporary_base_station"), "infrastructure");
     assert.equal(topologyGroupForType("relay_drone"), "airNetwork");
     assert.equal(topologyGroupForType("mission_drone"), "mission");
     assert.equal(topologyGroupForType("rescue_team"), "groundRescue");
-    assert.equal(topologyGroupForType("trapped_area"), "supportRisk");
     assert.ok(byId.get("GND-C-1")!.position.x < byId.get("BS-1")!.position.x);
     assert.ok(byId.get("BS-1")!.position.x < byId.get("UAV-R-1")!.position.x);
     assert.ok(byId.get("UAV-M-1")!.position.y > byId.get("UAV-R-1")!.position.y);

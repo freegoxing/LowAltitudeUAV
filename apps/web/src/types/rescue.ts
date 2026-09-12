@@ -1,6 +1,6 @@
 export type NodeStatus = "online" | "busy" | "warning" | "offline";
 export type NodePriority = "P0" | "P1" | "P2" | "normal";
-export type RescueNodeType = "command_center" | "command_vehicle" | "mission_drone" | "relay_drone" | "communication_drone" | "temporary_base_station" | "satellite_terminal" | "rescue_team" | "medical_point" | "shelter" | "trapped_area";
+export type RescueNodeType = "command_center" | "command_vehicle" | "mission_drone" | "relay_drone" | "communication_drone" | "temporary_base_station" | "satellite_terminal" | "rescue_team" | "medical_point";
 export interface RescueNode { id: string; name: string; type: RescueNodeType; status: NodeStatus; priority: NodePriority; position: { x: number; y: number }; longitude: number; latitude: number; altitude?: number; speed?: number; battery?: number; signalStrength: number; latency: number; bandwidth: number; packetLoss: number; load: number; currentTask?: string; region: string; connectedNodeIds: string[]; alertCount: number; isCritical: boolean; }
 export type LinkType = "primary" | "relay" | "backup" | "emergency";
 export type LinkStatus = "normal" | "degraded" | "unstable" | "interrupted";

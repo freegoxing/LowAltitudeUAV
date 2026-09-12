@@ -22,8 +22,6 @@ const nodeTypeText: Record<RescueNodeType, string> = {
     satellite_terminal: "卫星终端",
     rescue_team: "救援队",
     medical_point: "医疗点",
-    shelter: "安置点",
-    trapped_area: "被困区域",
 };
 const nodeStatusText: Record<NodeStatus, string> = { online: "在线", busy: "忙碌", warning: "告警", offline: "离线" };
 const linkTypeText: Record<LinkType, string> = { primary: "主链路", relay: "中继", backup: "备用", emergency: "应急" };

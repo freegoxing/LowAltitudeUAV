@@ -1,16 +1,15 @@
 import type { RescueNode, RescueNodeType } from "@/types/rescue";
 
-export type TopologyGroup = "command" | "infrastructure" | "airNetwork" | "mission" | "groundRescue" | "supportRisk";
+export type TopologyGroup = "command" | "infrastructure" | "airNetwork" | "mission" | "groundRescue";
 export const topologyGroups = [
     { id: "command", label: "指挥调度", column: 0, row: 0 },
     { id: "infrastructure", label: "通信基础设施", column: 1, row: 0 },
     { id: "airNetwork", label: "空中通信网络", column: 2, row: 0 },
     { id: "mission", label: "任务无人机", column: 0, row: 1 },
     { id: "groundRescue", label: "地面救援力量", column: 1, row: 1 },
-    { id: "supportRisk", label: "保障与风险目标", column: 2, row: 1 },
 ] as const;
-const groupByType: Record<RescueNodeType, TopologyGroup> = { command_center: "command", command_vehicle: "command", satellite_terminal: "infrastructure", temporary_base_station: "infrastructure", relay_drone: "airNetwork", communication_drone: "airNetwork", mission_drone: "mission", rescue_team: "groundRescue", medical_point: "groundRescue", shelter: "supportRisk", trapped_area: "supportRisk" };
-const typeOrder: Record<RescueNodeType, number> = { command_center: 0, command_vehicle: 1, satellite_terminal: 0, temporary_base_station: 1, relay_drone: 0, communication_drone: 1, mission_drone: 0, rescue_team: 0, medical_point: 1, shelter: 0, trapped_area: 1 };
+const groupByType: Record<RescueNodeType, TopologyGroup> = { command_center: "command", command_vehicle: "command", satellite_terminal: "infrastructure", temporary_base_station: "infrastructure", relay_drone: "airNetwork", communication_drone: "airNetwork", mission_drone: "mission", rescue_team: "groundRescue", medical_point: "groundRescue" };
+const typeOrder: Record<RescueNodeType, number> = { command_center: 0, command_vehicle: 1, satellite_terminal: 0, temporary_base_station: 1, relay_drone: 0, communication_drone: 1, mission_drone: 0, rescue_team: 0, medical_point: 1 };
 const GROUP_WIDTH = 410, GROUP_HEIGHT = 650, GAP_X = 42, GAP_Y = 70, GRID_COLUMNS = 2, CELL_WIDTH = 180, CELL_HEIGHT = 116;
 export function topologyGroupForType(type: RescueNodeType): TopologyGroup { return groupByType[type]; }
 export function topologyGroupBounds(group: typeof topologyGroups[number]) { return { x: group.column * (GROUP_WIDTH + GAP_X), y: group.row * (GROUP_HEIGHT + GAP_Y), width: GROUP_WIDTH, height: GROUP_HEIGHT }; }

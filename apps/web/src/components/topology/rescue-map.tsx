@@ -41,8 +41,6 @@ const markerSymbol: Record<RescueNodeType, string> = {
     satellite_terminal: "星",
     rescue_team: "救",
     medical_point: "医",
-    shelter: "安",
-    trapped_area: "险",
 };
 
 function markerIcon(

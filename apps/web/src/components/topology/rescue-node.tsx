@@ -5,11 +5,9 @@ import {
     Building2,
     CarFront,
     Cross,
-    House,
     MapPin,
     RadioTower,
     Satellite,
-    ShieldAlert,
     Users,
 } from "lucide-react";
 
@@ -26,8 +24,6 @@ const nodeIcons = {
     satellite_terminal: Satellite,
     rescue_team: Users,
     medical_point: Cross,
-    shelter: House,
-    trapped_area: ShieldAlert,
 } as const;
 
 const statusText = {
